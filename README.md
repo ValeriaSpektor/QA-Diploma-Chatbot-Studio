@@ -59,7 +59,9 @@ This repository contains the **QA Automation Diploma Project**, showcasing skill
 ## **Setup Instructions**
 
 ### **1. Clone the Repository**
-```bash
+
 git clone https://github.com/ValeriaSpektor/QA-Diploma-Chatbot-Studio.git
 cd QA-Diploma-Chatbot-Studio
 
+![image](https://github.com/user-attachments/assets/3c4358fd-b37b-4932-99b1-c47469f64375)
+[allure-report](http://10.0.0.10:64979/index.html#)
