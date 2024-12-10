@@ -35,21 +35,21 @@ jobs:
       - name: Upload results to Allure TestOps
         run: |
           allurectl upload --results-dir=allure-results \
-            --project-id=<PROJECT_ID> \
+            --project-id=4505 \  # ID проекта Allure TestOps
             --execution-name="CI Run ${{ github.run_number }}" \
             --token=${{ secrets.ALLURE_TOKEN }}
 
       - name: Send notification to Telegram
         if: ${{ always() }}
         run: |
-          passed=$(grep -c '"status":"passed"' allure-results/* || true)
-          failed=$(grep -c '"status":"failed"' allure-results/* || true)
+          passed=$(grep -c '"status":"passed"' allure-results/*.json || true)
+          failed=$(grep -c '"status":"failed"' allure-results/*.json || true)
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
-            -d '{
-              "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-              "text": "Статус тестов: ${{ job.status }}.\n\nПрошло: '${passed}'\nПровалилось: '${failed}'\n\nПосмотреть отчет: https://github.com/<Ваш_Репозиторий>/actions"
-            }'
+            -d "{
+              \"chat_id\": \"${{ secrets.TELEGRAM_CHAT_ID }}\",
+              \"text\": \"Статус тестов: ${{ job.status }}.\n\nПрошло: ${passed}\nПровалилось: ${failed}\n\nПосмотреть отчет: https://github.com/${{ github.repository }}/actions\"
+            }"
 
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
