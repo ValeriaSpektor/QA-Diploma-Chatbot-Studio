@@ -40,8 +40,7 @@ jobs:
 
       # Step to generate Allure report
       - name: Generate Allure Report
-        run: |
-          allure generate allure-results --clean -o allure-report
+        run: allure generate allure-results --clean -o allure-report
 
       # Step to deploy Allure report to GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
@@ -49,21 +48,6 @@ jobs:
         with:
           github_token: ${{ secrets.GH_PAT }}
           publish_dir: ./allure-report
-
-      # Step to download and install Allurectl
-      - name: Download and Install Allurectl
-        run: |
-          curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
-          chmod +x allurectl
-          sudo mv allurectl /usr/local/bin/
-
-      # Step to upload results to Allure TestOps
-      - name: Upload results to Allure TestOps
-        run: |
-          allurectl upload --results-dir=allure-results \
-            --project-id=4505 \
-            --execution-name="CI Run ${{ github.run_number }}" \
-            --token="${{ secrets.ALLURE_TESTOPS_TOKEN }}"
 
       # Step to send notification to Telegram
       - name: Send notification to Telegram
