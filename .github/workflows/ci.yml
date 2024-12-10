@@ -1,0 +1,58 @@
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run All Tests
+        run: |
+          npx playwright test --reporter=allure-playwright
+          npx playwright show-report
+
+      - name: Generate Allure Report
+        run: |
+          allure generate allure-results --clean -o allure-report
+
+      - name: Upload results to Allure TestOps
+        run: |
+          allurectl upload --results-dir=allure-results \
+            --project-id=<PROJECT_ID> \
+            --execution-name="CI Run ${{ github.run_number }}" \
+            --token=${{ secrets.ALLURE_TOKEN }}
+
+      - name: Send notification to Telegram
+        if: ${{ always() }}
+        run: |
+          passed=$(grep -c '"status":"passed"' allure-results/* || true)
+          failed=$(grep -c '"status":"failed"' allure-results/* || true)
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
+              "text": "Статус тестов: ${{ job.status }}.\n\nПрошло: '${passed}'\nПровалилось: '${failed}'\n\nПосмотреть отчет: https://github.com/<Ваш_Репозиторий>/actions"
+            }'
+
+      - name: Deploy Allure Report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report
