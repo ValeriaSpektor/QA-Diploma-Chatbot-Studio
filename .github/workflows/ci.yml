@@ -11,7 +11,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -19,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '16'
 
       - name: Install dependencies
         run: npm install
@@ -27,33 +26,15 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install
 
-      - name: Run All Tests
-        run: |
-          npx playwright test --reporter=allure-playwright
-          npx playwright show-report
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline --save-dev
+
+      - name: Run Tests
+        run: npx playwright test --reporter=allure-playwright
 
       - name: Generate Allure Report
         run: |
           allure generate allure-results --clean -o allure-report
-
-      - name: Upload results to Allure TestOps
-        run: |
-          allurectl upload --results-dir=allure-results \
-            --project-id=4505 \
-            --execution-name="CI Run ${{ github.run_number }}" \
-            --token=${{ secrets.ALLURE_TOKEN }}
-
-      - name: Send notification to Telegram
-        if: ${{ always() }}
-        run: |
-          passed=$(grep -c '"status":"passed"' allure-results/*.json || true)
-          failed=$(grep -c '"status":"failed"' allure-results/*.json || true)
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"chat_id\": \"${{ secrets.TELEGRAM_CHAT_ID }}\",
-              \"text\": \"🛠️ CI/CD Pipeline Results:\n\n💚 Passed: ${passed}\n❌ Failed: ${failed}\n\n📊 View the report: https://github.com/${{ github.repository }}/actions\"
-            }"
 
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
