@@ -12,53 +12,56 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      # Step to checkout the code
+      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step to setup Node.js
+      # Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '16'
 
-      # Step to install dependencies
+      # Install dependencies
       - name: Install dependencies
         run: npm install
 
-      # Step to install Playwright browsers
+      # Install Playwright browsers
       - name: Install Playwright Browsers
         run: npx playwright install
 
-      # Step to install Allure CLI
+      # Install Allure CLI
       - name: Install Allure CLI
         run: npm install -g allure-commandline --save-dev
 
-      # Step to run the tests
+      # Run the tests
       - name: Run Tests
         run: npx playwright test --reporter=allure-playwright
 
-      # Step to generate Allure report
+      # Generate Allure Report
       - name: Generate Allure Report
         run: |
           allure generate allure-results --clean -o allure-report
 
-      # Step to deploy Allure report to GitHub Pages
+      # Deploy Allure Report to GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GH_PAT }}
           publish_dir: ./allure-report
 
-      # Step to upload results to Allure TestOps
+      # Upload results to Allure TestOps
       - name: Upload results to Allure TestOps
         run: |
-          npx allurectl upload --results-dir=allure-results \
+          curl -O https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
+          chmod +x allurectl-2.13.10-linux-x86_64
+          mv allurectl-2.13.10-linux-x86_64 /usr/local/bin/allurectl
+          allurectl upload --results-dir=allure-results \
             --project-id=4505 \
             --execution-name="CI Run ${{ github.run_number }}" \
             --token=${{ secrets.ALLURE_TOKEN }}
 
-      # Step to send notification to Telegram
+      # Send notification to Telegram
       - name: Send notification to Telegram
         if: ${{ always() }}
         run: |
