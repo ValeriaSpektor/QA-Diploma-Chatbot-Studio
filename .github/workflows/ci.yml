@@ -1,4 +1,4 @@
-name: build-and-test
+name: CI-CD Pipeline
 
 on:
   push:
@@ -11,55 +11,62 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     steps:
-    # Шаг 1: Проверка репозитория
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # Шаг 2: Установка Node.js
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
+      # Set up Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-    # Шаг 3: Установка зависимостей
-    - name: Install dependencies
-      run: npm ci
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
 
-    # Шаг 4: Запуск тестов
-    - name: Run tests
-      run: npm test
+      # Install Playwright browsers
+      - name: Install Playwright Browsers
+        run: npx playwright install
 
-    # Шаг 5: Генерация отчёта Allure
-    - name: Generate Allure Report
-      run: |
-        npm install allure-commandline --save-dev
-        npx allure generate allure-results --clean
-        npx allure open allure-report
+      # Install Allure CLI
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline --save-dev
 
-    # Шаг 6: Деплой отчёта на GitHub Pages
-    - name: Deploy Allure Report to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GH_PAT }}
-        publish_dir: ./allure-report
+      # Run Playwright tests with Allure reporting
+      - name: Run Tests
+        run: npx playwright test --reporter=allure-playwright
 
-    # Шаг 7: Отправка файла отчёта в Telegram
-    - name: Send Allure Report to Telegram
-      if: ${{ always() }}
-      run: |
-        curl -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-             -F "document=@allure-report/history/history-trend.json" \
-             "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument"
+      # Generate Allure Report
+      - name: Generate Allure Report
+        run: allure generate allure-results --clean -o allure-report
 
-    # Шаг 8: Уведомление о статусе сборки (опционально)
-    - name: Send build status to Telegram
-      if: ${{ always() }}
-      run: |
-        curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-          -H "Content-Type: application/json" \
-          -d '{
-            "chat_id": "'${{ secrets.TELEGRAM_CHAT_ID }}'",
-            "text": "Build Status: '${{ job.status }}'. View Report: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/"
-          }'
+      # Deploy Allure Report to GitHub Pages
+      - name: Deploy Allure Report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GH_PAT }}
+          publish_dir: ./allure-report
+
+      # Upload results to Allure TestOps
+      - name: Upload results to Allure TestOps
+        run: |
+          curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
+          chmod +x allurectl
+          sudo mv allurectl /usr/local/bin/
+          allurectl upload --results-dir=allure-results \
+            --project-id=4505 \
+            --execution-name="CI Run ${{ github.run_number }}" \
+            --token=${{ secrets.ALLURE_TESTOPS_TOKEN }}
+
+      # Send report file to Telegram
+      - name: Send notification to Telegram
+        if: ${{ always() }}
+        run: |
+          passed=$(grep -c '"status":"passed"' allure-results/* || echo 0)
+          failed=$(grep -c '"status":"failed"' allure-results/* || echo 0)
+          total=$((passed + failed))
+          curl -F document=@allure-report/index.html "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+            -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -F caption="Build Status: ${{ job.status }}.\n\nTotal Tests: ${total}\nPassed: ${passed}\nFailed: ${failed}\n\nView Report: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/"
