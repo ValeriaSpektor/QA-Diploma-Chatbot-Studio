@@ -38,12 +38,12 @@ jobs:
       - name: Run Tests
         run: npx playwright test --reporter=allure-playwright
 
-      # Generate Allure Report
+      # Generate Allure report
       - name: Generate Allure Report
         run: |
           allure generate allure-results --clean -o allure-report
 
-      # Deploy Allure Report to GitHub Pages
+      # Deploy Allure report to GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -53,13 +53,12 @@ jobs:
       # Upload results to Allure TestOps
       - name: Upload results to Allure TestOps
         run: |
-          curl -O https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
-          chmod +x allurectl-2.13.10-linux-x86_64
-          mv allurectl-2.13.10-linux-x86_64 /usr/local/bin/allurectl
-          allurectl upload --results-dir=allure-results \
+          curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
+          chmod +x allurectl
+          ./allurectl upload --results-dir=allure-results \
             --project-id=4505 \
             --execution-name="CI Run ${{ github.run_number }}" \
-            --token=${{ secrets.ALLURE_TOKEN }}
+            --token=${{ secrets.ALLURE_TESTOPS_TOKEN }}
 
       # Send notification to Telegram
       - name: Send notification to Telegram
@@ -72,5 +71,5 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{
               "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-              "text": "Build Status: ${{ job.status }}.\n\nTotal Tests: '${total}'\nPassed: '${passed}'\nFailed: '${failed}'\n\nCheck the report here: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/"
+              "text": "✅ CI/CD Pipeline Completed\n\n*Status*: ${{ job.status }}\n*Total Tests*: '${total}'\n*Passed*: '${passed}'\n*Failed*: '${failed}'\n\n[View Report](https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/)"
             }'
