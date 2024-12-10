@@ -11,6 +11,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -22,6 +23,9 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Install Playwright Browsers
+        run: npx playwright install
 
       - name: Run All Tests
         run: |
@@ -35,7 +39,7 @@ jobs:
       - name: Upload results to Allure TestOps
         run: |
           allurectl upload --results-dir=allure-results \
-            --project-id=4505 \  # ID проекта Allure TestOps
+            --project-id=4505 \
             --execution-name="CI Run ${{ github.run_number }}" \
             --token=${{ secrets.ALLURE_TOKEN }}
 
@@ -48,7 +52,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{
               \"chat_id\": \"${{ secrets.TELEGRAM_CHAT_ID }}\",
-              \"text\": \"Статус тестов: ${{ job.status }}.\n\nПрошло: ${passed}\nПровалилось: ${failed}\n\nПосмотреть отчет: https://github.com/${{ github.repository }}/actions\"
+              \"text\": \"🛠️ CI/CD Pipeline Results:\n\n💚 Passed: ${passed}\n❌ Failed: ${failed}\n\n📊 View the report: https://github.com/${{ github.repository }}/actions\"
             }"
 
       - name: Deploy Allure Report to GitHub Pages
