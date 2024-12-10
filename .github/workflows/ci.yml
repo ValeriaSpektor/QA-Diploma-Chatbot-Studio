@@ -12,57 +12,62 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
+      # Step to checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Step to setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '16'
 
+      # Step to install dependencies
       - name: Install dependencies
         run: npm install
 
+      # Step to install Playwright browsers
       - name: Install Playwright Browsers
         run: npx playwright install
 
+      # Step to install Allure CLI
       - name: Install Allure CLI
         run: npm install -g allure-commandline --save-dev
 
-      - name: Install Allurectl
-        run: |
-          curl -o allurectl https://github.com/allure-framework/allurectl/releases/latest/download/allurectl-linux
-          chmod +x allurectl
-          sudo mv allurectl /usr/local/bin/allurectl
-
+      # Step to run the tests
       - name: Run Tests
         run: npx playwright test --reporter=allure-playwright
 
+      # Step to generate Allure report
       - name: Generate Allure Report
         run: |
           allure generate allure-results --clean -o allure-report
 
+      # Step to deploy Allure report to GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GH_PAT }}
           publish_dir: ./allure-report
 
+      # Step to upload results to Allure TestOps
       - name: Upload results to Allure TestOps
         run: |
-          allurectl upload --results-dir=allure-results \
+          npx allurectl upload --results-dir=allure-results \
             --project-id=4505 \
             --execution-name="CI Run ${{ github.run_number }}" \
             --token=${{ secrets.ALLURE_TOKEN }}
 
+      # Step to send notification to Telegram
       - name: Send notification to Telegram
         if: ${{ always() }}
         run: |
           passed=$(grep -c '"status":"passed"' allure-results/* || echo 0)
           failed=$(grep -c '"status":"failed"' allure-results/* || echo 0)
+          total=$((passed + failed))
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
             -d '{
               "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-              "text": "Build Status: ${{ job.status }}.\n\nTests Passed: '${passed}'\nTests Failed: '${failed}'\n\nCheck the report: https://<Your_Repository_URL>/actions"
+              "text": "Build Status: ${{ job.status }}.\n\nTotal Tests: '${total}'\nPassed: '${passed}'\nFailed: '${failed}'\n\nCheck the report here: https://<Your_Repository_URL>/actions"
             }'
