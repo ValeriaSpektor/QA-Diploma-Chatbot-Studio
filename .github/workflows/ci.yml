@@ -41,3 +41,22 @@ jobs:
         with:
           github_token: ${{ secrets.GH_PAT }}
           publish_dir: ./allure-report
+
+      - name: Upload results to Allure TestOps
+        run: |
+          allurectl upload --results-dir=allure-results \
+            --project-id=4505 \
+            --execution-name="Run ${{ github.run_number }}" \
+            --token=${{ secrets.ALLURE_TOKEN }}
+
+      - name: Send notification to Telegram
+        if: ${{ always() }}
+        run: |
+          passed=$(grep -c '"status":"passed"' allure-results/* || true)
+          failed=$(grep -c '"status":"failed"' allure-results/* || true)
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
+              "text": "Статус тестов: ${{ job.status }}.\n\nПрошло: '${passed}'\nПровалилось: '${failed}'\n\nПосмотреть отчет: https://<ваш_репозиторий>/actions"
+            }'
