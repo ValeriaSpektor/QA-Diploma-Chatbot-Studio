@@ -30,7 +30,10 @@ jobs:
         run: npm install -g allure-commandline --save-dev
 
       - name: Install Allurectl
-        run: curl -sL https://github.com/allure-framework/allurectl/releases/download/v1.13.0/allurectl-linux -o allurectl && chmod +x allurectl && sudo mv allurectl /usr/local/bin/
+        run: |
+          curl -o allurectl https://github.com/allure-framework/allurectl/releases/latest/download/allurectl-linux
+          chmod +x allurectl
+          sudo mv allurectl /usr/local/bin/allurectl
 
       - name: Run Tests
         run: npx playwright test --reporter=allure-playwright
@@ -49,17 +52,17 @@ jobs:
         run: |
           allurectl upload --results-dir=allure-results \
             --project-id=4505 \
-            --execution-name="Run ${{ github.run_number }}" \
+            --execution-name="CI Run ${{ github.run_number }}" \
             --token=${{ secrets.ALLURE_TOKEN }}
 
       - name: Send notification to Telegram
         if: ${{ always() }}
         run: |
-          passed=$(grep -c '"status":"passed"' allure-results/* || true)
-          failed=$(grep -c '"status":"failed"' allure-results/* || true)
+          passed=$(grep -c '"status":"passed"' allure-results/* || echo 0)
+          failed=$(grep -c '"status":"failed"' allure-results/* || echo 0)
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
             -d '{
               "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-              "text": "Статус тестов: ${{ job.status }}.\n\nПрошло: '${passed}'\nПровалилось: '${failed}'\n\nПосмотреть отчет: https://<ваш_репозиторий>/actions"
+              "text": "Build Status: ${{ job.status }}.\n\nTests Passed: '${passed}'\nTests Failed: '${failed}'\n\nCheck the report: https://<Your_Repository_URL>/actions"
             }'
