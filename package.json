@@ -1,0 +1,25 @@
+{
+  "name": "qa-diploma-chatbot-studio",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report"
+  },
+  "keywords": [],
+  "author": "Valeria Spektor",
+  "license": "ISC",
+  "dependencies": {
+    "@faker-js/faker": "^9.2.0",
+    "@playwright/test": "^1.49.0",
+    "allure-playwright": "^3.0.6",
+    "axios": "^1.7.8",
+    "faker": "^6.6.6",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}
