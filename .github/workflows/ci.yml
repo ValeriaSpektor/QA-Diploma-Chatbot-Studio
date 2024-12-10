@@ -1,84 +1,59 @@
-name: CI-CD Pipeline
+name: CI-CD Pipeline for QA-Diploma-Chatbot-Studio
 
 on:
   push:
     branches:
       - main
   pull_request:
+    branches:
+      - main
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      # Set up Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
 
-      # Install dependencies
-      - name: Install dependencies
-        run: npm install
+    - name: Install dependencies
+      run: npm install
 
-      # Run tests
-      - name: Run tests
-        run: npm test || true
+    - name: Run tests
+      run: npm test
 
-      # Generate Allure Report
-      - name: Generate Allure Report
-        run: |
-          allure generate allure-results --clean -o allure-report
+    - name: Generate Allure Report
+      run: |
+        npm install -g allure-commandline --save-dev
+        allure generate allure-results --clean -o allure-report
 
-      # Deploy Allure Report to GitHub Pages
-      - name: Deploy Allure Report to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GH_PAT }}
-          publish_dir: ./allure-report
+    - name: Deploy Allure Report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GH_PAT }}
+        publish_dir: ./allure-report
 
-      # Upload results to Allure TestOps
-      - name: Upload results to Allure TestOps
-        run: |
-          curl -X POST \
-          -H "Authorization: Api-Token ${{ secrets.ALLURE_TESTOPS_TOKEN }}" \
-          -F "projectId=4505" \
-          -F "file=@allure-results" \
-          https://allure.autotests.cloud/api/rs/testresult
+    - name: Upload results to Allure TestOps
+      run: |
+        curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
+        chmod +x allurectl
+        sudo mv allurectl /usr/local/bin/
+        allurectl send allure-results --endpoint=https://allure.autotests.cloud --project-id=4505 --authorization="Bearer ${{ secrets.ALLURE_TOKEN }}"
 
-      # Send notification to Telegram
-      - name: Send notification to Telegram
-        if: ${{ always() }}
-        run: |
-          passed=$(grep -c '"status":"passed"' allure-results/* || echo 0)
-          failed=$(grep -c '"status":"failed"' allure-results/* || echo 0)
-          total=$((passed + failed))
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+    - name: Send notification to Telegram
+      if: ${{ always() }}
+      run: |
+        passed=$(grep -c '"status":"passed"' allure-results/* || echo 0)
+        failed=$(grep -c '"status":"failed"' allure-results/* || echo 0)
+        total=$((passed + failed))
+        curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -H "Content-Type: application/json" \
           -d '{
-                "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-                "text": "Build Status: ${{ job.status }}\n\nTotal Tests: '"${total}"'\nPassed: '"${passed}"'\nFailed: '"${failed}"'\nView Report: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/"
-              }'
-
-  save-screenshots:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-
-    steps:
-      # Download Allure CLI
-      - name: Download and Install Allure CLI
-        run: |
-          curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
-          chmod +x allurectl
-          sudo mv allurectl /usr/local/bin/
-
-      # Upload Screenshots to Allure TestOps
-      - name: Upload Screenshots to Allure TestOps
-        run: |
-          allurectl upload \
-          --project-id 4505 \
-          --results-dir allure-results
+            "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
+            "text": "Build Status: ${{ job.status }}\nTotal Tests: '"$total"'\nPassed: '"$passed"'\nFailed: '"$failed"'\nView Report: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/"
+          }'
