@@ -69,5 +69,5 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{
               "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-              "text": "Build Status: ${{ job.status }}.\n\nTotal Tests: '${total}'\nPassed: '${passed}'\nFailed: '${failed}'\n\nCheck the report here: https://<Your_Repository_URL>/actions"
+              "text": "Build Status: ${{ job.status }}.\n\nTotal Tests: '${total}'\nPassed: '${passed}'\nFailed: '${failed}'\n\nCheck the report here: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/"
             }'
