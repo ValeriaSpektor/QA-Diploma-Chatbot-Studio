@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import fetch from 'node-fetch';
 
 const API_BASE_URL = 'https://chatgpt.ai-chatbot.studio/api';
 
