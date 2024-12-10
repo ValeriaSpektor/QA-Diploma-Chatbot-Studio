@@ -12,55 +12,55 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the code
+      # Step to checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Setup Node.js
+      # Step to setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '16'
 
-      # Install dependencies
+      # Step to install dependencies
       - name: Install dependencies
         run: npm install
 
-      # Install Playwright browsers
+      # Step to install Playwright browsers
       - name: Install Playwright Browsers
         run: npx playwright install
 
-      # Install Allure CLI
+      # Step to install Allure CLI
       - name: Install Allure CLI
         run: npm install -g allure-commandline --save-dev
 
-      # Run the tests
+      # Step to run the tests
       - name: Run Tests
         run: npx playwright test --reporter=allure-playwright
 
-      # Generate Allure report
+      # Step to generate Allure report
       - name: Generate Allure Report
         run: |
           allure generate allure-results --clean -o allure-report
 
-      # Deploy Allure report to GitHub Pages
+      # Step to deploy Allure report to GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GH_PAT }}
           publish_dir: ./allure-report
 
-      # Upload results to Allure TestOps
+      # Step to upload results to Allure TestOps
       - name: Upload results to Allure TestOps
         run: |
           curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
-          chmod +x allurectl
+          chmod +x ./allurectl
           ./allurectl upload --results-dir=allure-results \
             --project-id=4505 \
             --execution-name="CI Run ${{ github.run_number }}" \
-            --token=${{ secrets.ALLURE_TESTOPS_TOKEN }}
+            --token=${{ secrets.ALLURE_TOKEN }}
 
-      # Send notification to Telegram
+      # Step to send notification to Telegram
       - name: Send notification to Telegram
         if: ${{ always() }}
         run: |
@@ -71,5 +71,5 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{
               "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-              "text": "✅ CI/CD Pipeline Completed\n\n*Status*: ${{ job.status }}\n*Total Tests*: '${total}'\n*Passed*: '${passed}'\n*Failed*: '${failed}'\n\n[View Report](https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/)"
+              "text": "Build Status: ${{ job.status }}.\n\nTotal Tests: '${total}'\nPassed: '${passed}'\nFailed: '${failed}'\n\n[View Report](https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/)"
             }'
