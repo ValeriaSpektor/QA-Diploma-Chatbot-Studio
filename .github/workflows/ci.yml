@@ -29,6 +29,9 @@ jobs:
       - name: Install Allure CLI
         run: npm install -g allure-commandline --save-dev
 
+      - name: Install Allurectl
+        run: curl -sL https://github.com/allure-framework/allurectl/releases/download/v1.13.0/allurectl-linux -o allurectl && chmod +x allurectl && sudo mv allurectl /usr/local/bin/
+
       - name: Run Tests
         run: npx playwright test --reporter=allure-playwright
 
