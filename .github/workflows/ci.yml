@@ -50,15 +50,20 @@ jobs:
           github_token: ${{ secrets.GH_PAT }}
           publish_dir: ./allure-report
 
+      # Step to download and install Allurectl
+      - name: Download and Install Allurectl
+        run: |
+          curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
+          chmod +x allurectl
+          sudo mv allurectl /usr/local/bin/
+
       # Step to upload results to Allure TestOps
       - name: Upload results to Allure TestOps
         run: |
-          curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
-          chmod +x ./allurectl
-          ./allurectl upload --results-dir=allure-results \
+          allurectl upload --results-dir=allure-results \
             --project-id=4505 \
             --execution-name="CI Run ${{ github.run_number }}" \
-            --token=${{ secrets.ALLURE_TOKEN }}
+            --token="${{ secrets.ALLURE_TESTOPS_TOKEN }}"
 
       # Step to send notification to Telegram
       - name: Send notification to Telegram
@@ -71,5 +76,5 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{
               "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-              "text": "Build Status: ${{ job.status }}.\n\nTotal Tests: '${total}'\nPassed: '${passed}'\nFailed: '${failed}'\n\n[View Report](https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/)"
+              "text": "Build Status: ${{ job.status }}.\n\nTotal Tests: '${total}'\nPassed: '${passed}'\nFailed: '${failed}'\n\nView Report: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/"
             }'
