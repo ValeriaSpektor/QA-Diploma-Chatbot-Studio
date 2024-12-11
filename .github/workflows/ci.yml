@@ -37,4 +37,3 @@ jobs:
       - name: Clean up Docker Container
         run: |
           docker rm -f my-test-container
-
