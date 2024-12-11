@@ -4,39 +4,34 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build:
+  docker-tests:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout репозиторий
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Логин в Docker Hub (опционально)
-      - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
 
-      # Сборка Docker образа
       - name: Build Docker Image
         run: docker build -t my-docker-image .
 
-      # Запуск контейнера с монтированием allure-results
       - name: Run Tests and Upload to Allure TestOps
-        run: docker run \
-          -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
-          -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
-          -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
-          my-docker-image
-
-      # Уведомление в Telegram
-      - name: Send Notification to Telegram
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          curl -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-          -d chat_id="${TELEGRAM_CHAT_ID}" \
-          -d text="Docker tests completed. Check Allure TestOps for results."
+          docker run --rm \
+            -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
+            -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
+            -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
+            my-docker-image
 
+      - name: Send Notification to Telegram
+        run: |
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -d text="Docker tests completed successfully"
