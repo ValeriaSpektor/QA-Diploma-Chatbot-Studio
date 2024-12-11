@@ -1,10 +1,7 @@
-name: docker-tests
+name: Docker Tests with Allure and Telegram
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
     branches:
       - main
 
@@ -16,22 +13,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
+      - name: Log in to Docker Hub
+        run: |
+          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker Image
-        run: docker build -t my-docker-image .
-
-      - name: Run Tests and Upload to Allure TestOps
         run: |
-          docker run --rm \
-            -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
-            -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
-            -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
-            my-docker-image
+          docker build -t my-docker-image .
 
-      - name: Send Notification to Telegram
+      - name: Run Docker Container
+        run: |
+          docker run --name my-test-container -v ${PWD}/allure-results:/app/allure-results my-docker-image
+
+      - name: Copy Allure Results
+        run: |
+          docker cp my-test-container:/app/allure-results ./allure-results
+
+      - name: Upload Allure Report to TestOps
+        run: |
+          ./allurectl upload ./allure-results \
+            --project-id 4505 \
+            --endpoint https://allure.autotests.cloud \
+            --token ${{ secrets.ALLURE_TOKEN }}
+        env:
+          ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
+
+      - name: Send Results to Telegram
         run: |
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="Docker tests completed successfully"
+          -d chat_id=${{ secrets.TELEGRAM_USER_ID }} \
+          -d text="Allure Report successfully uploaded to TestOps: https://allure.autotests.cloud/project/4505"
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_USER_ID: ${{ secrets.TELEGRAM_USER_ID }}
+
+      - name: Clean up Docker Container
+        run: |
+          docker rm -f my-test-container
+
