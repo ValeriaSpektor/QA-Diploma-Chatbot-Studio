@@ -1,40 +1,42 @@
-name: CI/CD Pipeline with Docker and Telegram Notifications
+name: docker-tests
 
 on:
   push:
     branches:
       - main
-  pull_request:
 
 jobs:
-  docker-tests:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      # Шаг 1: Клонирование кода
-      - name: Checkout Code
+      # Checkout репозиторий
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Шаг 2: Сборка Docker-образа для автотестов
+      # Логин в Docker Hub (опционально)
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      # Сборка Docker образа
       - name: Build Docker Image
-        run: docker build -t autotests .
+        run: docker build -t my-docker-image .
 
-      # Шаг 3: Запуск тестов и загрузка результатов в Allure TestOps
+      # Запуск контейнера с монтированием allure-results
       - name: Run Tests and Upload to Allure TestOps
-        run: |
-          docker run --rm \
-            -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
-            -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
-            -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
-            autotests
+        run: docker run \
+          -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
+          -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
+          -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
+          my-docker-image
 
-      # Шаг 4: Уведомление в Telegram
+      # Уведомление в Telegram
       - name: Send Notification to Telegram
-        if: always()
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-              "text": "\uD83D\uDCE2 CI/CD Pipeline Completed\n\nJob: docker-tests\nStatus: ${{ job.status }}\n\nCheck Allure TestOps for detailed results."
-            }'
+          curl -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+          -d chat_id="${TELEGRAM_CHAT_ID}" \
+          -d text="Docker tests completed. Check Allure TestOps for results."
+
