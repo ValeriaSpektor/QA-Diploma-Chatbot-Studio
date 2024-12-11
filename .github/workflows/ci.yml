@@ -1,4 +1,4 @@
-name: Docker Tests with Telegram
+name: Docker Tests with Allure and Telegram
 
 on:
   push:
@@ -14,23 +14,27 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Build Docker Image
-        run: docker build -t my-docker-image .
+        run: |
+          docker build -t my-docker-image .
 
       - name: Run Docker Container
         run: |
           docker run --name my-test-container -v ${PWD}/allure-results:/app/allure-results my-docker-image
 
-      - name: Copy Allure Results
-        run: docker cp my-test-container:/app/allure-results ./allure-results
+      - name: Copy Allure Results from Docker to Local Machine
+        run: |
+          docker cp my-test-container:/app/allure-results ./allure-results
 
       - name: Send Results to Telegram
         run: |
+          REPORT_URL="$(curl -F 'file=@allure-report/index.html' https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument -F chat_id=${{ secrets.TELEGRAM_USER_ID }} | jq -r '.result.file_id')"
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -d chat_id=${{ secrets.TELEGRAM_USER_ID }} \
-          -d text="Tests completed. Check results."
+          -d text="Allure Report is available. Download here: $REPORT_URL"
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_USER_ID: ${{ secrets.TELEGRAM_USER_ID }}
 
       - name: Clean up Docker Container
-        run: docker rm -f my-test-container
+        run: |
+          docker rm -f my-test-container
