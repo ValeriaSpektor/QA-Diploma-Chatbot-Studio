@@ -1,4 +1,4 @@
-name: build-and-test
+name: CI-CD Pipeline for Auto Tests
 
 on:
   push:
@@ -11,61 +11,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Шаг 1: Клонирование репозитория
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Шаг 2: Настройка Node.js окружения
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
 
-    # Шаг 3: Установка зависимостей
-    - name: Install dependencies
-      run: npm ci
-
-    # Шаг 4: Установка браузеров Playwright
-    - name: Install Playwright Browsers
-      run: npx playwright install
-
-    # Шаг 5: Запуск тестов с Playwright
-    - name: Run Playwright Tests
-      run: npx playwright test --reporter=line,allure-playwright
-      env:
-        CI: true
-
-    # Шаг 6: Генерация Allure-отчета
-    - name: Generate Allure Report
+    - name: Build and Run Docker Image for Tests
       run: |
-        npx allure generate --clean allure-results -o allure-report
-        ls -la allure-report
+        docker build -t autotests .
+        docker run --rm autotests
 
-    # Шаг 7: Деплой отчета на GitHub Pages
+    - name: Install Allure CLI
+      run: |
+        npm install -g allure-commandline --save-dev
+        allure --version
+
+    - name: Generate Allure Report
+      run: npx allure generate allure-results --clean -o allure-report
+
     - name: Deploy Allure Report to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GH_PAT }}
         publish_dir: ./allure-report
 
-    # Шаг 8: Загрузка результатов в Allure TestOps
     - name: Upload Results to Allure TestOps
       run: |
         curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
         chmod +x allurectl
-        sudo mv allurectl /usr/local/bin/
-        allurectl upload --project-id=${{ secrets.ALLURE_PROJECT_ID }} --results-dir=allure-results
+        ./allurectl upload --project-id ${{ secrets.ALLURE_PROJECT_ID }} --results-dir ./allure-results
       env:
         ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
         ALLURE_SERVER_URL: ${{ secrets.ALLURE_SERVER_URL }}
 
-    # Шаг 9: Отправка уведомления в Telegram
+    - name: Attach Screenshots to Allure
+      run: |
+        cp ./screenshots/*.png ./allure-results/
+        npx allure generate allure-results --clean -o allure-report
+
     - name: Send Notification to Telegram
-      if: always()
       run: |
         curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -H "Content-Type: application/json" \
-          -d '{
-            "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-            "text": "Build Status: ${{ job.status }}\nTotal Tests: $(grep -c "" allure-results/* || echo 0)\nView Report: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/"
-          }'
+          -d '{"chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}", "text": "CI/CD Pipeline Completed. Build Status: Success"}'
+
+    - name: Debug Secrets
+      run: |
+        echo "GH_PAT: ${{ secrets.GH_PAT }}"
+        echo "ALLURE_PROJECT_ID: ${{ secrets.ALLURE_PROJECT_ID }}"
+        echo "ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}"
+        echo "ALLURE_SERVER_URL: ${{ secrets.ALLURE_SERVER_URL }}"
+        echo "TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}"
+        echo "TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}"
