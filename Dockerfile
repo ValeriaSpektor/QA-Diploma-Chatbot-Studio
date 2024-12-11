@@ -1,5 +1,5 @@
 # Используем базовый образ Node.js
-FROM node:16
+FROM node:16-bullseye
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -13,24 +13,24 @@ RUN npm install
 # Копируем весь проект
 COPY . .
 
-# Устанавливаем зависимости для Playwright
+# Обновляем систему и устанавливаем недостающие зависимости
 RUN apt-get update && apt-get install -y \
-    libnss3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    libasound2 \
-    libpangocairo-1.0-0 \
-    libcups2 \
-    libxshmfence1 \
-    libdbus-glib-1-2 \
-    xvfb
+    wget \
+    gnupg \
+    libevent-dev \
+    libenchant-2-2 \
+    libicu-dev \
+    fonts-liberation \
+    --no-install-recommends && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Устанавливаем Playwright
 RUN npx playwright install-deps
 RUN npx playwright install
 
-# Команда для запуска автотестов с Xvfb
-CMD ["xvfb-run", "--server-args=-screen 0 1920x1080x24", "npx", "playwright", "test"]
+# Устанавливаем Allure CLI
+RUN npm install -g allure-commandline --save-dev
+
+# Команда для запуска тестов
+CMD ["sh", "-c", "npx playwright test && npx allure generate allure-results --clean -o allure-report && curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64 && chmod +x allurectl && ./allurectl upload --project-id $ALLURE_PROJECT_ID --results-dir allure-results --server $ALLURE_SERVER_URL --token $ALLURE_TOKEN"]
