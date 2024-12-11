@@ -1,4 +1,4 @@
-name: API Tests
+name: CI/CD Pipeline for Tests
 
 on:
   push:
@@ -7,22 +7,116 @@ on:
   pull_request:
 
 jobs:
-  api-tests:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    # Шаг 1: Клонирование кода
+    - name: Checkout Code
       uses: actions/checkout@v3
 
-    - name: Install dependencies
+    # Шаг 2: Установка зависимостей
+    - name: Install Dependencies
       run: npm install
 
-    - name: Debug API Access
-      run: |
-        curl -I ${{ secrets.API_BASE_URL }}/health
-        dig chatgpt.ai-chatbot.studio
+    # Шаг 3: Установка браузеров Playwright
+    - name: Install Playwright Browsers
+      run: npx playwright install
 
-    - name: Run API Tests
-      run: npx playwright test tests/api/
+    # Шаг 4: Запуск тестов
+    - name: Run Tests
+      run: |
+        npx playwright test --reporter=line
       env:
         API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        API_AUTH_TOKEN: ${{ secrets.API_AUTH_TOKEN }}
+
+    # Шаг 5: Установка Allure CLI
+    - name: Install Allure CLI
+      run: |
+        npm install -g allure-commandline --save-dev
+        allure --version
+
+    # Шаг 6: Генерация отчета Allure
+    - name: Generate Allure Report
+      run: |
+        npx allure generate allure-results --clean -o allure-report
+
+    # Шаг 7: Публикация отчета Allure в GitHub Pages
+    - name: Deploy Allure Report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GH_PAT }}
+        publish_dir: ./allure-report
+
+    # Шаг 8: Загрузка результатов в Allure TestOps
+    - name: Upload Results to Allure TestOps
+      run: |
+        curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
+        chmod +x allurectl
+        ./allurectl upload --project-id ${{ secrets.ALLURE_PROJECT_ID }} --results-dir ./allure-results
+      env:
+        ALLURE_SERVER_URL: ${{ secrets.ALLURE_SERVER_URL }}
+        ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
+
+    # Шаг 9: Отправка уведомлений в Telegram
+    - name: Send Notification to Telegram
+      run: |
+        curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          -H "Content-Type: application/json" \
+          -d '{"chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}", "text": "\u2705 Build Status: ${{ job.status }}\n\nTotal Tests Passed: ${{ steps.tests.outputs.passed }}\nTotal Tests Failed: ${{ steps.tests.outputs.failed }}"}'
+
+    # Шаг 10: Сохранение скриншотов и логов
+    - name: Upload Test Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: test-results/
+
+    # Шаг 11: Очистка ресурсов Docker (если используется)
+    - name: Clean Up Docker
+      if: always()
+      run: |
+        docker system prune -af
+
+  docker-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Шаг 1: Клонирование кода
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # Шаг 2: Сборка Docker-образа для автотестов
+    - name: Build Docker Image for Tests
+      run: |
+        docker build -t autotests .
+
+    # Шаг 3: Запуск Docker-контейнера с автотестами
+    - name: Run Tests in Docker
+      run: |
+        docker run --rm autotests
+
+    # Шаг 4: Сохранение отчетов
+    - name: Upload Allure Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: allure-results
+        path: allure-results/
+
+    # Шаг 5: Загрузка отчетов в Allure TestOps
+    - name: Upload Results to Allure TestOps
+      run: |
+        curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
+        chmod +x allurectl
+        ./allurectl upload --project-id ${{ secrets.ALLURE_PROJECT_ID }} --results-dir ./allure-results
+      env:
+        ALLURE_SERVER_URL: ${{ secrets.ALLURE_SERVER_URL }}
+        ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
+
+    # Шаг 6: Уведомления в Telegram
+    - name: Send Notification to Telegram
+      run: |
+        curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          -H "Content-Type: application/json" \
+          -d '{"chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}", "text": "\u2705 Docker Build and Test Completed. Check Allure Report for details."}'
