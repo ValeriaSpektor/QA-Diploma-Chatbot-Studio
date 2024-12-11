@@ -1,4 +1,4 @@
-name: Docker Tests with Allure and Telegram
+name: Docker Tests with Telegram
 
 on:
   push:
@@ -25,20 +25,11 @@ jobs:
         run: |
           docker cp my-test-container:/app/allure-results ./allure-results
 
-      - name: Upload Allure Report to TestOps
-        run: |
-          ./allurectl upload ./allure-results \
-            --project-id 4505 \
-            --endpoint https://allure.autotests.cloud \
-            --token ${{ secrets.ALLURE_TOKEN }}
-        env:
-          ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
-
       - name: Send Results to Telegram
         run: |
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -d chat_id=${{ secrets.TELEGRAM_USER_ID }} \
-          -d text="Allure Report successfully uploaded to TestOps: https://allure.autotests.cloud/project/4505"
+          -d text="UI Tests executed successfully. Check results in the attached Allure report."
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_USER_ID: ${{ secrets.TELEGRAM_USER_ID }}
@@ -46,3 +37,4 @@ jobs:
       - name: Clean up Docker Container
         run: |
           docker rm -f my-test-container
+
