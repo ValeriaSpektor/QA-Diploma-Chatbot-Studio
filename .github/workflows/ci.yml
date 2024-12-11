@@ -1,4 +1,4 @@
-name: CI-CD Pipeline for Auto Tests
+name: CI-CD Pipeline with Environment Variables
 
 on:
   push:
@@ -64,3 +64,4 @@ jobs:
         echo "ALLURE_SERVER_URL: ${{ secrets.ALLURE_SERVER_URL }}"
         echo "TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}"
         echo "TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}"
+
