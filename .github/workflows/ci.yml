@@ -1,4 +1,4 @@
-name: Docker Tests with Telegram
+name: Docker Tests with Telegram Notification
 
 on:
   push:
@@ -19,6 +19,7 @@ jobs:
 
       - name: Run Docker Container
         run: |
+          docker rm -f my-test-container || true
           docker run --name my-test-container -v ${PWD}/allure-results:/app/allure-results my-docker-image
 
       - name: Copy Allure Results
@@ -29,7 +30,7 @@ jobs:
         run: |
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -d chat_id=${{ secrets.TELEGRAM_USER_ID }} \
-          -d text="UI Tests executed successfully. Check results in the attached Allure report."
+          -d text="All tests completed successfully. Check Allure Report for details."
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_USER_ID: ${{ secrets.TELEGRAM_USER_ID }}
@@ -37,3 +38,4 @@ jobs:
       - name: Clean up Docker Container
         run: |
           docker rm -f my-test-container
+
