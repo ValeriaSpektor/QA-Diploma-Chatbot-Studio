@@ -1,4 +1,4 @@
-name: CI/CD Pipeline with Docker and Allure TestOps
+name: CI/CD Pipeline with Docker and Telegram Notifications
 
 on:
   push:
@@ -11,44 +11,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout Code
+      # Шаг 1: Клонирование кода
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Build Docker Image
+      # Шаг 2: Сборка Docker-образа для автотестов
       - name: Build Docker Image
+        run: docker build -t autotests .
+
+      # Шаг 3: Запуск тестов и загрузка результатов в Allure TestOps
+      - name: Run Tests and Upload to Allure TestOps
         run: |
-          docker build -t autotests .
+          docker run --rm \
+            -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
+            -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
+            -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
+            autotests
 
-      # Step 3: Run Tests in Docker
-      - name: Run Tests in Docker
-        run: |
-          docker run --rm -v ${PWD}/allure-results:/app/allure-results autotests
-
-      # Step 4: Upload Allure Results to GitHub
-      - name: Upload Allure Results
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-results
-          path: allure-results/
-
-      # Step 5: Install Allure CLI
-      - name: Install Allure CLI
-        run: |
-          curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
-          chmod +x allurectl
-
-      # Step 6: Upload Results to Allure TestOps
-      - name: Upload Results to Allure TestOps
-        run: |
-          ./allurectl upload --project-id ${{ secrets.ALLURE_PROJECT_ID }} --results-dir ./allure-results
-        env:
-          ALLURE_SERVER_URL: ${{ secrets.ALLURE_SERVER_URL }}
-          ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
-
-      # Step 7: Notify in Telegram
+      # Шаг 4: Уведомление в Telegram
       - name: Send Notification to Telegram
+        if: always()
         run: |
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
-            -d '{"chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}", "text": "✅ Docker Test Run Completed. Check Allure TestOps for results."}'
+            -d '{
+              "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
+              "text": "\uD83D\uDCE2 CI/CD Pipeline Completed\n\nJob: docker-tests\nStatus: ${{ job.status }}\n\nCheck Allure TestOps for detailed results."
+            }'
