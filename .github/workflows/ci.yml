@@ -1,7 +1,10 @@
-name: Docker Tests with Allure and Telegram Integration
+name: docker-tests
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
 
@@ -13,14 +16,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: npm install
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
 
-      - name: Run Tests and Generate Allure Report
+      - name: Build Docker Image
+        run: docker build -t my-docker-image .
+
+      - name: Run Tests and Upload to Allure TestOps
         run: |
-          chmod +x entrypoint.sh
-          ./entrypoint.sh
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          ALLURE_PROJECT_ID: ${{ secrets.ALLURE_PROJECT_ID }}
+          docker run --rm \
+            -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
+            -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
+            -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
+            my-docker-image
+
+      - name: Send Notification to Telegram
+        run: |
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -d text="Docker tests completed successfully"
