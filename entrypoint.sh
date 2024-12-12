@@ -6,6 +6,10 @@ if [ ! -f "/app/notifications/telegram.json" ]; then
     exit 1
 fi
 
+# Показываем содержимое файла конфигурации для проверки
+echo "Checking telegram.json content..."
+cat /app/notifications/telegram.json
+
 # Запускаем тесты Playwright
 echo "Running Playwright tests..."
 npx playwright test --reporter=allure-playwright
