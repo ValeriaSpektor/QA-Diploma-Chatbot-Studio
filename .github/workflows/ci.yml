@@ -1,4 +1,4 @@
-name: CI-CD Pipeline with Telegram Notifications
+name: CI-CD Pipeline with Allure and Telegram
 
 on:
   push:
@@ -11,7 +11,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -27,6 +26,9 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline --save-dev
+
       - name: Run Playwright tests
         run: npx playwright test --reporter=allure-playwright
 
@@ -36,8 +38,13 @@ jobs:
 
       - name: Send Telegram Notification
         run: |
-          java "-DconfigFile=notifications/telegram.json" \
-               -jar notifications/allure-notifications-4.8.0.jar
+          echo '{
+            "telegram": {
+              "botToken": "${{ secrets.TELEGRAM_BOT_TOKEN }}",
+              "chatId": "${{ secrets.TELEGRAM_CHAT_ID }}"
+            }
+          }' > telegram.json
+          java "-DconfigFile=telegram.json" -jar notifications/allure-notifications-4.8.0.jar
 
       - name: Upload Allure Report
         uses: actions/upload-artifact@v3
