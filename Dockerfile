@@ -2,14 +2,9 @@ FROM node:16-bullseye
 
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
-COPY package*.json ./
-
 # Устанавливаем зависимости
+COPY package*.json ./
 RUN npm install
-
-# Копируем весь проект
-COPY . .
 
 # Устанавливаем Playwright
 RUN npx playwright install --with-deps
@@ -17,8 +12,18 @@ RUN npx playwright install --with-deps
 # Устанавливаем Allure CLI
 RUN npm install -g allure-commandline --save-dev
 
-# Копируем JAR файл для уведомлений из локального репозитория
+# Устанавливаем Java
+RUN apt-get update && apt-get install -y openjdk-11-jdk
+
+# Настраиваем JAVA_HOME
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+# Копируем проект
+COPY . .
+
+# Копируем JAR файл для уведомлений
 COPY notifications/allure-notifications-4.8.0.jar /app/
 
-# Команда для запуска тестов и генерации отчета
+# Команда для запуска тестов
 CMD ["sh", "-c", "npx playwright test --reporter=allure-playwright && allure generate allure-results --clean -o allure-report && java -jar /app/allure-notifications-4.8.0.jar"]
