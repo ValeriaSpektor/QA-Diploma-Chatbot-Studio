@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   docker-tests:
@@ -35,11 +32,24 @@ jobs:
           docker cp test-container:/app/allure-report ./allure-report
           docker rm test-container
 
-      - name: Take Screenshot of Allure Report
+      - name: Install Dependencies for Screenshot
         run: |
           sudo apt-get update
-          sudo apt-get install -y wkhtmltopdf
-          wkhtmltoimage ./allure-report/index.html ./allure-report/report.png
+          sudo apt-get install -y nodejs npm
+          npm install playwright
+
+      - name: Take Screenshot of Allure Report with Playwright
+        run: |
+          node <<EOF
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+            await page.goto('file:///${{ github.workspace }}/allure-report/index.html');
+            await page.screenshot({ path: '${{ github.workspace }}/allure-report/report.png' });
+            await browser.close();
+          })();
+          EOF
 
       - name: Send Screenshot to Telegram
         run: |
