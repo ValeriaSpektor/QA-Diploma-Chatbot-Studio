@@ -1,0 +1,14 @@
+# Системные файлы
+.DS_Store          # macOS
+Thumbs.db          # Windows
+.idea/             # IntelliJ IDEA
+.vscode/           # Visual Studio Code
+*.log              # Логи
+*.tmp              # Временные файлы
+*.swp              # Vim файлы
+
+# Node.js зависимости
+node_modules/      # Устанавливается через npm/yarn
+npm-debug.log*     # Логи npm
+yarn-error.log     # Логи yarn
+.pnpm-debug.log*   # Логи pnpm
