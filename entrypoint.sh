@@ -1,37 +1,27 @@
 #!/bin/bash
 
-# Проверяем, что конфигурационный файл существует
-if [ ! -f "/app/notifications/telegram.json" ]; then
-    echo "Configuration file /app/notifications/telegram.json not found!"
-    exit 1
+# Запуск тестов
+npx playwright test
+TEST_STATUS=$?  # Сохраняем статус выполнения (0 — успешно, не 0 — есть ошибки)
+
+# Генерация Allure отчета
+npx allure generate allure-results --clean -o allure-report
+
+# Интеграция с Allure плагином
+curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+     -d chat_id=$TELEGRAM_CHAT_ID \
+     -d text="Allure Report доступен: https://allure.autotests.cloud/project/$ALLURE_PROJECT_ID/dashboards"
+
+# Уведомление в Telegram
+if [ $TEST_STATUS -eq 0 ]; then
+  curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+       -d chat_id=$TELEGRAM_CHAT_ID \
+       -d text="✅ Тесты успешно завершены. Allure Report: https://allure.autotests.cloud/project/$ALLURE_PROJECT_ID/dashboards"
+else
+  curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+       -d chat_id=$TELEGRAM_CHAT_ID \
+       -d text="❌ Некоторые тесты упали. Проверьте отчет: https://allure.autotests.cloud/project/$ALLURE_PROJECT_ID/dashboards"
 fi
 
-# Показываем содержимое файла конфигурации для проверки
-echo "Checking telegram.json content..."
-cat /app/notifications/telegram.json
-
-# Запускаем тесты Playwright
-echo "Running Playwright tests..."
-npx playwright test --reporter=allure-playwright
-if [ $? -ne 0 ]; then
-    echo "Playwright tests failed!"
-    exit 1
-fi
-
-# Генерируем Allure отчет
-echo "Generating Allure report..."
-allure generate allure-results --clean -o allure-report
-if [ $? -ne 0 ]; then
-    echo "Failed to generate Allure report!"
-    exit 1
-fi
-
-# Отправляем уведомление через Telegram
-echo "Sending Telegram notification..."
-java -DconfigFile=/app/notifications/telegram.json -jar /app/notifications/allure-notifications-4.8.0.jar
-if [ $? -ne 0 ]; then
-    echo "Failed to send Telegram notification!"
-    exit 1
-fi
-
-echo "All steps completed successfully!"
+# Конец скрипта
+exit $TEST_STATUS
