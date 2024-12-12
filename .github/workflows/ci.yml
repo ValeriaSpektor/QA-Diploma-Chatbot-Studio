@@ -24,21 +24,22 @@ jobs:
 
       - name: Run Tests and Generate Allure Report
         run: |
-          docker run --rm \
+          docker run --name test-container \
             -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
             -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
             -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
-            -v ${PWD}/allure-results:/app/allure-results \
             my-docker-image
 
       - name: Copy Allure Report to Host
-        run: docker cp $(docker create my-docker-image):/app/allure-report ./allure-report
+        run: |
+          docker cp test-container:/app/allure-report ./allure-report
+          docker rm test-container
 
       - name: Take Screenshot of Allure Report
         run: |
           sudo apt-get update
           sudo apt-get install -y wkhtmltopdf
-          wkhtmltoimage http://localhost:8000 ./allure-report/report.png
+          wkhtmltoimage ./allure-report/index.html ./allure-report/report.png
 
       - name: Send Screenshot to Telegram
         run: |
