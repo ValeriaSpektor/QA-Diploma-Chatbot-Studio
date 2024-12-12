@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
@@ -30,14 +30,13 @@ jobs:
             -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
             my-docker-image
 
-      - name: Install Playwright Browsers
+      - name: Install Dependencies for Screenshot
         run: |
-          npx playwright install
+          npm install playwright
 
-      - name: Take Screenshot of Allure Report with Playwright
-        run: |
-          npx playwright screenshot --output=allure-report-screenshot.png --url="http://localhost:8080/index.html"
-      
+      - name: Take Screenshot of Allure Report
+        run: node screenshot.js
+
       - name: Send Screenshot to Telegram
         run: |
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto" \
