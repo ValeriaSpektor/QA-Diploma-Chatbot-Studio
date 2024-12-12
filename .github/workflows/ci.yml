@@ -1,4 +1,4 @@
-name: Docker Tests with Allure Plugin and Telegram
+name: Docker Tests with Allure and Telegram Notifications
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  allure-tests:
+  docker-tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,7 +16,7 @@ jobs:
       - name: Build Docker Image
         run: docker build -t my-docker-image .
 
-      - name: Run Tests and Upload Results
+      - name: Run Tests and Generate Allure Report
         run: |
           docker run --rm \
             -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
@@ -24,12 +24,23 @@ jobs:
             -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
             my-docker-image
 
-      - name: Fetch Allure Report URL
-        id: get-report
-        run: echo "::set-output name=url::https://allure.autotests.cloud/project/${{ secrets.ALLURE_PROJECT_ID }}/launch/latest"
-
-      - name: Send Allure Report to Telegram
+      - name: Install Playwright for Screenshot
         run: |
+          npx playwright install
+
+      - name: Take Screenshot of Allure Report
+        run: |
+          npx playwright screenshot \
+            --url "https://allure.autotests.cloud/launch/43098" \
+            --output allure-report.png
+
+      - name: Send Screenshot and Link to Telegram
+        run: |
+          # Отправляем сообщение с ссылкой на отчет
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="Allure Report: ${{ steps.get-report.outputs.url }}"
+            -d text="Docker tests completed. View the Allure report here: https://allure.autotests.cloud/launch/43098"
+          # Отправляем скриншот
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto" \
+            -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -F photo="@allure-report.png"
