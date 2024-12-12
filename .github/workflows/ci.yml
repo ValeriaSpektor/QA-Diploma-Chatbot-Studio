@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   docker-tests:
@@ -19,41 +22,24 @@ jobs:
       - name: Build Docker Image
         run: docker build -t my-docker-image .
 
-      - name: Run Tests and Generate Allure Report
+      - name: Run Docker Container
         run: |
-          docker run --name test-container \
+          docker run --rm \
             -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
             -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
             -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
             my-docker-image
 
-      - name: Copy Allure Report to Host
+      - name: Install Playwright Browsers
         run: |
-          docker cp test-container:/app/allure-report ./allure-report
-          docker rm test-container
-
-      - name: Install Dependencies for Screenshot
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y nodejs npm
-          npm install playwright
+          npx playwright install
 
       - name: Take Screenshot of Allure Report with Playwright
         run: |
-          node <<EOF
-          const { chromium } = require('playwright');
-          (async () => {
-            const browser = await chromium.launch();
-            const page = await browser.newPage();
-            await page.goto('file:///${{ github.workspace }}/allure-report/index.html');
-            await page.screenshot({ path: '${{ github.workspace }}/allure-report/report.png' });
-            await browser.close();
-          })();
-          EOF
-
+          npx playwright screenshot --output=allure-report-screenshot.png --url="http://localhost:8080/index.html"
+      
       - name: Send Screenshot to Telegram
         run: |
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto" \
           -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -F photo="@./allure-report/report.png" \
-          -F caption="Docker tests completed. See the attached report."
+          -F photo=@allure-report-screenshot.png
