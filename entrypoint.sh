@@ -1,43 +1,26 @@
 #!/bin/bash
 
-# Запуск тестов и сохранение результата
+# Запуск тестов
 npx playwright test
 TEST_STATUS=$?  # Сохраняем статус выполнения (0 — успешно, не 0 — есть ошибки)
 
-# Генерация отчета Allure
+# Генерация Allure отчета
 npx allure generate allure-results --clean -o allure-report
 
-# Путь к Allure отчету (замените на файл, если нужен график)
-REPORT_OVERVIEW="allure-report/widgets/summary.json"
+# Интеграция с Allure плагином
+curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+     -d chat_id=$TELEGRAM_CHAT_ID \
+     -d text="Allure Report доступен: https://allure.autotests.cloud/project/$ALLURE_PROJECT_ID/dashboards"
 
-# Если тесты прошли успешно
+# Уведомление в Telegram
 if [ $TEST_STATUS -eq 0 ]; then
-  # Отправляем сообщение в Telegram
   curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
        -d chat_id=$TELEGRAM_CHAT_ID \
-       -d text="✅ Тесты прошли успешно! Отчет Allure: https://ваш-сервер-с-отчетами"
-
-  # Если нужен скриншот/данные, отправляем изображение
-  if [ -f "$REPORT_OVERVIEW" ]; then
-    curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendPhoto" \
-         -F chat_id=$TELEGRAM_CHAT_ID \
-         -F photo=@"$REPORT_OVERVIEW" \
-         -F caption="✅ Тесты прошли успешно! Подробности в Allure."
-  fi
-
+       -d text="✅ Тесты успешно завершены. Allure Report: https://allure.autotests.cloud/project/$ALLURE_PROJECT_ID/dashboards"
 else
-  # Если тесты упали, отправляем сообщение с текстом ошибки
   curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
        -d chat_id=$TELEGRAM_CHAT_ID \
-       -d text="❌ Тесты завершились с ошибками. Проверьте отчет Allure: https://ваш-сервер-с-отчетами"
-
-  # Также отправляем изображение, если доступно
-  if [ -f "$REPORT_OVERVIEW" ]; then
-    curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendPhoto" \
-         -F chat_id=$TELEGRAM_CHAT_ID \
-         -F photo=@"$REPORT_OVERVIEW" \
-         -F caption="❌ Тесты завершились с ошибками. Проверьте детали в Allure."
-  fi
+       -d text="❌ Некоторые тесты упали. Проверьте отчет: https://allure.autotests.cloud/project/$ALLURE_PROJECT_ID/dashboards"
 fi
 
 # Конец скрипта
