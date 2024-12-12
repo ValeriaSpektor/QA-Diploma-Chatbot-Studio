@@ -1,22 +1,44 @@
 #!/bin/bash
 
-# Запуск тестов Playwright
+# Запуск тестов и сохранение результата
 npx playwright test
+TEST_STATUS=$?  # Сохраняем статус выполнения (0 — успешно, не 0 — есть ошибки)
 
-# Генерация Allure отчета
+# Генерация отчета Allure
 npx allure generate allure-results --clean -o allure-report
 
-# Загрузка Allure CLI
-curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
-chmod +x allurectl
+# Путь к Allure отчету (замените на файл, если нужен график)
+REPORT_OVERVIEW="allure-report/widgets/summary.json"
 
-# Отправка отчета в Allure TestOps
-./allurectl upload --project-id $ALLURE_PROJECT_ID \
-                   --results-dir allure-results \
-                   --server $ALLURE_SERVER_URL \
-                   --token $ALLURE_TOKEN
+# Если тесты прошли успешно
+if [ $TEST_STATUS -eq 0 ]; then
+  # Отправляем сообщение в Telegram
+  curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+       -d chat_id=$TELEGRAM_CHAT_ID \
+       -d text="✅ Тесты прошли успешно! Отчет Allure: https://ваш-сервер-с-отчетами"
 
-# Отправка уведомления в Telegram
-curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-     -d chat_id=$TELEGRAM_CHAT_ID \
-     -d text="Уведомления о статусе CI/CD успешно подключены! Теперь вы будете получать отчеты о тестах и результатах загрузки.\n\nСсылка на отчет Allure: $ALLURE_REPORT_URL"
+  # Если нужен скриншот/данные, отправляем изображение
+  if [ -f "$REPORT_OVERVIEW" ]; then
+    curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendPhoto" \
+         -F chat_id=$TELEGRAM_CHAT_ID \
+         -F photo=@"$REPORT_OVERVIEW" \
+         -F caption="✅ Тесты прошли успешно! Подробности в Allure."
+  fi
+
+else
+  # Если тесты упали, отправляем сообщение с текстом ошибки
+  curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+       -d chat_id=$TELEGRAM_CHAT_ID \
+       -d text="❌ Тесты завершились с ошибками. Проверьте отчет Allure: https://ваш-сервер-с-отчетами"
+
+  # Также отправляем изображение, если доступно
+  if [ -f "$REPORT_OVERVIEW" ]; then
+    curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendPhoto" \
+         -F chat_id=$TELEGRAM_CHAT_ID \
+         -F photo=@"$REPORT_OVERVIEW" \
+         -F caption="❌ Тесты завершились с ошибками. Проверьте детали в Allure."
+  fi
+fi
+
+# Конец скрипта
+exit $TEST_STATUS
