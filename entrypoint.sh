@@ -17,20 +17,27 @@ if [ ! -d "allure-report" ]; then
   exit 1
 fi
 
+# Создание скриншота отчета
+ALLURE_REPORT_FILE="allure-report.png"
+npx playwright show-report --port=51705 &
+PLAYWRIGHT_PID=$!
+sleep 5 # Ждем запуска локального сервера
+curl http://localhost:51705/ --output $ALLURE_REPORT_FILE
+kill $PLAYWRIGHT_PID
+
 # Уведомление в Telegram
 curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
      -d chat_id=$TELEGRAM_CHAT_ID \
-     -d text="✅ Тесты завершены. Отчёт Allure создан: https://allure.autotests.cloud/project/$ALLURE_PROJECT_ID/dashboards"
+     -d text="✅ Тесты завершены. Отчёт Allure создан."
 
-# Отправка файла-скриншота отчёта (если доступен)
-ALLURE_SCREENSHOT="allure-report/index.html"
-if [ -f "$ALLURE_SCREENSHOT" ]; then
-  curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument" \
+# Отправка скриншота в Telegram
+if [ -f "$ALLURE_REPORT_FILE" ]; then
+  curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendPhoto" \
        -F chat_id=$TELEGRAM_CHAT_ID \
-       -F document=@"$ALLURE_SCREENSHOT" \
-       -F caption="Allure Report"
+       -F photo=@"$ALLURE_REPORT_FILE" \
+       -F caption="Allure Report Screenshot"
 else
-  echo "❌ Скриншот Allure отчёта не найден!"
+  echo "❌ Скриншот Allure отчёта не создан!"
 fi
 
 exit $TEST_STATUS
