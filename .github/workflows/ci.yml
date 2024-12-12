@@ -22,16 +22,27 @@ jobs:
       - name: Build Docker Image
         run: docker build -t my-docker-image .
 
-      - name: Run Tests and Upload to Allure TestOps
+      - name: Run Tests and Generate Allure Report
         run: |
           docker run --rm \
             -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
             -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
             -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
+            -v ${PWD}/allure-results:/app/allure-results \
             my-docker-image
 
-      - name: Send Notification to Telegram
+      - name: Copy Allure Report to Host
+        run: docker cp $(docker create my-docker-image):/app/allure-report ./allure-report
+
+      - name: Take Screenshot of Allure Report
         run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="Docker tests completed successfully"
+          sudo apt-get update
+          sudo apt-get install -y wkhtmltopdf
+          wkhtmltoimage http://localhost:8000 ./allure-report/report.png
+
+      - name: Send Screenshot to Telegram
+        run: |
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto" \
+          -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -F photo="@./allure-report/report.png" \
+          -F caption="Docker tests completed. See the attached report."
