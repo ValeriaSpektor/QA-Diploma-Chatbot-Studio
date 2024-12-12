@@ -37,8 +37,9 @@ RUN npm install -g allure-commandline --save-dev
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH
 
-# Добавляем права на выполнение entrypoint.sh
+# Добавляем скрипт для выполнения команд
+COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Используем entrypoint.sh для запуска
+# Команда для запуска скрипта
 CMD ["/app/entrypoint.sh"]
