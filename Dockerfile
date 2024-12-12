@@ -1,5 +1,7 @@
+# Используем образ Node.js с Bullseye
 FROM node:16-bullseye
 
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
 # Устанавливаем зависимости
@@ -25,5 +27,8 @@ COPY . .
 # Копируем JAR файл для уведомлений
 COPY notifications/allure-notifications-4.8.0.jar /app/
 
+# Копируем файл конфигурации для Telegram
+COPY notifications/telegram.json /app/telegram.json
+
 # Команда для запуска тестов
-CMD ["sh", "-c", "npx playwright test --reporter=allure-playwright && allure generate allure-results --clean -o allure-report && java -jar /app/allure-notifications-4.8.0.jar"]
+CMD ["sh", "-c", "npx playwright test --reporter=allure-playwright && allure generate allure-results --clean -o allure-report && java -DconfigFile=/app/telegram.json -jar /app/allure-notifications-4.8.0.jar"]
