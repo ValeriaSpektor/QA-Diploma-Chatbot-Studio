@@ -30,15 +30,15 @@ jobs:
             -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
             my-docker-image
 
-      - name: Install Dependencies for Screenshot
-        run: |
-          npm install playwright
+      - name: Install Playwright Browsers
+        run: npx playwright install
 
-      - name: Take Screenshot of Allure Report
-        run: node screenshot.js
+      - name: Take Screenshot of Allure Report with Playwright
+        run: |
+          npx playwright screenshot --output=allure-report-screenshot.png --url="http://localhost:8080/index.html"
 
       - name: Send Screenshot to Telegram
         run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto" \
-          -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -F photo=@allure-report-screenshot.png
+          curl -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+               -F photo="@allure-report-screenshot.png" \
+               "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto"
