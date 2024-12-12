@@ -1,1 +1,1 @@
-{"total":0,"items":[]}
+{"total":3,"items":[{"uid":"707ca8bb6bdcc7276e737557ffc76f06","name":"api/tests/login.spec.js","statistic":{"failed":0,"broken":0,"skipped":0,"passed":6,"unknown":0,"total":6}},{"uid":"db4028301e7ee364bea6c7e7b10b00e1","name":"ui/tests/register.spec.js","statistic":{"failed":0,"broken":0,"skipped":0,"passed":5,"unknown":0,"total":5}},{"uid":"ddb349366897d6404ca0bec871113629","name":"ui/tests/login.spec.js","statistic":{"failed":0,"broken":0,"skipped":0,"passed":3,"unknown":0,"total":3}}]}
