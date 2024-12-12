@@ -30,9 +30,15 @@ jobs:
 
       - name: Take Screenshot of Allure Report
         run: |
-          npx playwright screenshot \
-            --url "https://allure.autotests.cloud/launch/43098" \
-            --output allure-report.png
+          echo "const { chromium } = require('playwright'); \
+          (async () => { \
+            const browser = await chromium.launch(); \
+            const page = await browser.newPage(); \
+            await page.goto('https://allure.autotests.cloud/launch/43098'); \
+            await page.screenshot({ path: 'allure-report.png' }); \
+            await browser.close(); \
+          })();" > screenshot.js
+          node screenshot.js
 
       - name: Send Screenshot and Link to Telegram
         run: |
