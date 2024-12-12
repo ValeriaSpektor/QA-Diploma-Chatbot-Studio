@@ -36,21 +36,14 @@ jobs:
         run: |
           allure generate allure-results --clean -o allure-report
 
-      - name: Take Screenshot of Allure Report
-        run: |
-          npx playwright screenshot http://localhost:8000 allure-report.png
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: 0
-
-      - name: Send Screenshot to Telegram
-        run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto" \
-          -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -F photo="@allure-report.png" \
-          -F caption="Allure Report Summary"
-
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GH_PAT }}
           publish_dir: ./allure-report
+
+      - name: Send Telegram Notification
+        run: |
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -d text="Allure report generated successfully! 🎉\nView the full report here: https://<your-github-pages-link>/allure-report"
