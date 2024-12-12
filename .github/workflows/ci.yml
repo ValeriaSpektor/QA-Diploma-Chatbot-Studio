@@ -40,13 +40,16 @@ jobs:
           })();" > screenshot.js
           node screenshot.js
 
-      - name: Send Screenshot and Link to Telegram
+      - name: Send Screenshot to Telegram
         run: |
-          # Отправляем сообщение с ссылкой на отчет
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="Docker tests completed. View the Allure report here: https://allure.autotests.cloud/launch/43098"
-          # Отправляем скриншот
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto" \
             -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -F photo="@allure-report.png"
+            -F photo="@allure-report.png" \
+            -F caption="Allure Report Screenshot"
+
+      - name: Send Docker Results to Telegram
+        run: |
+          docker logs my-docker-container > docker-results.log
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="Docker results:\n$(cat docker-results.log)"
