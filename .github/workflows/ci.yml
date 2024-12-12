@@ -1,38 +1,37 @@
-name: Docker Tests with Allure and Telegram (Windows Compatible)
+name: docker-tests
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   docker-tests:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
       - name: Build Docker Image
-        run: |
-          docker build -t my-docker-image .
+        run: docker build -t my-docker-image .
 
-      - name: Run Docker Container
+      - name: Run Tests and Upload to Allure TestOps
         run: |
-          docker run --name my-test-container -v %CD%/allure-results:/app/allure-results my-docker-image
+          docker run --rm \
+            -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
+            -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
+            -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
+            my-docker-image
 
-      - name: Copy Allure Results to Host
+      - name: Send Notification to Telegram
         run: |
-          docker cp my-test-container:/app/allure-results ./allure-results
-
-      - name: Send Results to Telegram
-        shell: cmd
-        run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" ^
-          -d chat_id=${{ secrets.TELEGRAM_USER_ID }} ^
-          -d text="Allure Report successfully generated and copied locally."
-
-      - name: Clean up Docker Container
-        run: |
-          docker rm -f my-test-container
-
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -d text="Docker tests completed successfully"
