@@ -1,4 +1,4 @@
-name: Docker Tests with Telegram Notification
+name: Docker Tests with Allure and Telegram (Windows Compatible)
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   docker-tests:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repository
@@ -19,21 +19,20 @@ jobs:
 
       - name: Run Docker Container
         run: |
-          docker run --name my-test-container -v ${PWD}/allure-results:/app/allure-results my-docker-image
+          docker run --name my-test-container -v %CD%/allure-results:/app/allure-results my-docker-image
 
       - name: Copy Allure Results to Host
         run: |
           docker cp my-test-container:/app/allure-results ./allure-results
 
       - name: Send Results to Telegram
+        shell: cmd
         run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-          -d chat_id=${{ secrets.TELEGRAM_USER_ID }} \
-          -d text="Docker tests completed. Allure results are copied locally. Please review them."
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_USER_ID: ${{ secrets.TELEGRAM_USER_ID }}
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" ^
+          -d chat_id=${{ secrets.TELEGRAM_USER_ID }} ^
+          -d text="Allure Report successfully generated and copied locally."
 
       - name: Clean up Docker Container
         run: |
           docker rm -f my-test-container
+
