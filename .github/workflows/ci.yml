@@ -1,4 +1,4 @@
-name: CI-CD Pipeline with Docker
+name: CI-CD Pipeline with Telegram Notifications
 
 on:
   push:
@@ -16,25 +16,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Build Docker Image
-        run: docker build -t my-docker-image .
-
-      - name: Run Tests in Docker Container
-        run: |
-          docker run --rm \
-          -v ${{ github.workspace }}/allure-results:/app/allure-results \
-          -v ${{ github.workspace }}/allure-report:/app/allure-report \
-          my-docker-image \
-          sh -c "npx playwright test --reporter=allure-playwright && allure generate allure-results --clean -o allure-report"
-
-      - name: Deploy Allure Report to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          github_token: ${{ secrets.GH_PAT }}
-          publish_dir: ./allure-report
+          node-version: '16'
 
-      - name: Send Allure Report Link to Telegram
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test --reporter=allure-playwright
+
+      - name: Generate Allure Report
         run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="Allure Report is available at: https://<your-github-username>.github.io/<your-repository-name>"
+          allure generate allure-results --clean -o allure-report
+
+      - name: Send Telegram Notification
+        run: |
+          java "-DconfigFile=notifications/telegram.json" \
+               -jar notifications/allure-notifications-4.8.0.jar
+
+      - name: Upload Allure Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report
+          path: allure-report/
