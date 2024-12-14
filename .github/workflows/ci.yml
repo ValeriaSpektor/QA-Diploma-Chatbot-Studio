@@ -29,6 +29,10 @@ jobs:
           -v ${{ github.workspace }}/allure-report:/app/allure-report \
           my-docker-image
 
+      - name: Serve Allure Report
+        run: |
+          npx http-server allure-report -p 8080 &
+
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
