@@ -13,7 +13,7 @@ RUN npm install
 # Копируем весь проект
 COPY . .
 
-# Обновляем систему и устанавливаем недостающие зависимости
+# Устанавливаем зависимости для Playwright
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -22,19 +22,12 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     fonts-liberation \
     openjdk-11-jdk-headless \
-    xvfb \
-    wkhtmltopdf \
     --no-install-recommends && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Исправляем права для Node.js и npm (чтобы избежать проблем с разрешениями)
-RUN chown -R node:node /usr/local/lib/node_modules && \
-    chmod -R 755 /usr/local/lib/node_modules
-
-# Устанавливаем Playwright
-RUN npx playwright install-deps --unsafe-perm=true
-RUN npx playwright install --unsafe-perm=true
+# Устанавливаем Playwright и его зависимости
+RUN npx playwright install-deps && npx playwright install
 
 # Устанавливаем Allure CLI
 RUN npm install -g allure-commandline --save-dev
@@ -43,9 +36,8 @@ RUN npm install -g allure-commandline --save-dev
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH
 
-# Копируем скрипт entrypoint.sh и даем ему права на выполнение
-COPY entrypoint.sh /app/entrypoint.sh
+# Добавляем права на выполнение entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Команда по умолчанию для запуска контейнера
+# Используем entrypoint.sh для запуска
 CMD ["/app/entrypoint.sh"]
