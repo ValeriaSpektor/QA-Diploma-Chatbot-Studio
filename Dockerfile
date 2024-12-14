@@ -1,18 +1,26 @@
+# Используем официальный базовый образ Playwright с необходимыми зависимостями
 FROM mcr.microsoft.com/playwright:v1.37.0-focal
 
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Установка зависимостей
+# Копируем package.json и package-lock.json для установки зависимостей
 COPY package*.json ./
-RUN npm install
 
-# Копирование проекта
-COPY . .
+# Устанавливаем зависимости
+RUN npm ci
 
-# Установка Allure
+# Устанавливаем Allure для создания отчетов
 RUN npm install -g allure-commandline --save-dev
 
-# Установка Playwright Browsers
+# Копируем все файлы проекта в контейнер
+COPY . .
+
+# Устанавливаем браузеры Playwright
 RUN npx playwright install
 
+# Устанавливаем переменные окружения для удобства конфигурации
+ENV NODE_ENV=production
+
+# Указываем команду, которая будет выполняться при запуске контейнера
 ENTRYPOINT ["sh", "/app/entrypoint.sh"]
