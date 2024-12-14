@@ -28,9 +28,13 @@ RUN apt-get update && apt-get install -y \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Исправляем права для Node.js и npm (чтобы избежать проблем с разрешениями)
+RUN chown -R node:node /usr/local/lib/node_modules && \
+    chmod -R 755 /usr/local/lib/node_modules
+
 # Устанавливаем Playwright
-RUN npx playwright install-deps
-RUN npx playwright install
+RUN npx playwright install-deps --unsafe-perm=true
+RUN npx playwright install --unsafe-perm=true
 
 # Устанавливаем Allure CLI
 RUN npm install -g allure-commandline --save-dev
