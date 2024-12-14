@@ -52,5 +52,5 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{
               "chat_id": "${{ secrets.TELEGRAM_CHAT_ID }}",
-              "text": "CI/CD Pipeline Status: ${{ job.status }}\n\nPassed: '${passed}'\nFailed: '${failed}'\n\nAllure Report: https://<YOUR_GITHUB_PAGES_URL>"
+              "text": "CI/CD Pipeline Status: ${{ job.status }}\n\nPassed: '${passed}'\nFailed: '${failed}'\n\nAllure Report: https://github.com/ValeriaSpektor/QA-Diploma-Chatbot-Studio.git"
             }'
