@@ -1,9 +1,10 @@
-name: build-and-test
+name: CI Pipeline
 
 on:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
   build-and-test:
@@ -21,15 +22,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests and generate Allure report
+      - name: Build Docker image
         run: |
-          npx playwright test
-          npx allure generate allure-results --clean -o allure-report
+          docker build -t my-docker-image .
 
-      - name: Serve Allure Report
+      - name: Run tests in Docker
         run: |
-          npx http-server allure-report -p 8080 &
-          sleep 5
+          docker run --rm \
+            -v ${{ github.workspace }}/allure-results:/app/allure-results \
+            -v ${{ github.workspace }}/allure-report:/app/allure-report \
+            my-docker-image
 
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
@@ -37,20 +39,15 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
 
-      - name: Notify Telegram with image
+      - name: Notify Telegram
         run: |
-          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto \
-          -F chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-          -F photo="https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/assets/allure-logo.png" \
-          -F caption="📝 Allure Report\n\n✅ *Passed:* 87\n❌ *Failed:* 10\n⚠️ *Broken:* 2\n➖ *Skipped:* 1\n📊 *Total:* 100\n\n🔗 [View Allure Report](https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/)"
-
-      - name: Post Cache Node.js modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Post Checkout repository
-        uses: actions/checkout@v3
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="📝 *Allure Report*%0A
+            ✅ *Passed:* $(grep -oP '(?<=passed": )\d+' allure-results/widgets/summary.json)%0A
+            ❌ *Failed:* $(grep -oP '(?<=failed": )\d+' allure-results/widgets/summary.json)%0A
+            ⚠️ *Broken:* $(grep -oP '(?<=broken": )\d+' allure-results/widgets/summary.json)%0A
+            ➖ *Skipped:* $(grep -oP '(?<=skipped": )\d+' allure-results/widgets/summary.json)%0A
+            📊 *Total:* $(grep -oP '(?<=total": )\d+' allure-results/widgets/summary.json)%0A
+            🔗 [View Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.repository }}/)"
