@@ -1,17 +1,27 @@
 #!/bin/bash
 
-# Fail immediately if any command exits with a non-zero status
+# Остановка скрипта при любой ошибке
 set -e
 
-# Run Playwright tests
-echo "Running Playwright tests..."
-npx playwright test
+echo ">>> Установка зависимостей Playwright"
+npx playwright install
 
-# Generate Allure Report
-echo "Generating Allure Report..."
-npx allure generate ./allure-results --clean -o ./allure-report
+echo ">>> Запуск тестов Playwright"
+npx playwright test || {
+  echo ">>> Ошибка при выполнении тестов Playwright"
+  exit 1
+}
 
-# Serve Allure Report
-echo "Serving Allure Report..."
-npx http-server ./allure-report -p 8080 &
+echo ">>> Генерация Allure-отчета"
+npx allure generate --clean ./allure-results || {
+  echo ">>> Ошибка при генерации Allure-отчета"
+  exit 1
+}
 
+echo ">>> Запуск локального сервера для Allure-отчета"
+http-server ./allure-report -p 8080 &
+
+echo ">>> Отчет доступен по адресу: http://localhost:8080"
+
+# Поддерживаем контейнер активным, чтобы сервер продолжал работать
+tail -f /dev/null
