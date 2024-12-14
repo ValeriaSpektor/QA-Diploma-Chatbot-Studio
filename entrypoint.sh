@@ -1,26 +1,29 @@
 #!/bin/bash
 
-# Запуск тестов Playwright
-npx playwright test --reporter=allure-playwright
+# Чтение данных из summary.json
+SUMMARY_FILE="allure-report/widgets/summary.json"
 
-# Генерация Allure-отчета
-npx allure generate allure-results --clean -o allure-report
+if [ -f "$SUMMARY_FILE" ]; then
+  PASSED=$(jq '.statistic.passed' $SUMMARY_FILE)
+  FAILED=$(jq '.statistic.failed' $SUMMARY_FILE)
+  BROKEN=$(jq '.statistic.broken' $SUMMARY_FILE)
+  SKIPPED=$(jq '.statistic.skipped' $SUMMARY_FILE)
+  TOTAL=$(jq '.statistic.total' $SUMMARY_FILE)
 
-# Генерация скриншота Allure-отчета
-apt-get update && apt-get install -y wkhtmltopdf
-xvfb-run --server-args="-screen 0, 1920x1080x24" \
-    wkhtmltoimage --width 1024 --quality 80 \
-    http://127.0.0.1:8080 allure-report/screenshot.png
+  # Формирование текста для уведомления
+  MESSAGE="📝 Allure Report\n"
+  MESSAGE+="✅ Passed: $PASSED\n"
+  MESSAGE+="❌ Failed: $FAILED\n"
+  MESSAGE+="⚠️ Broken: $BROKEN\n"
+  MESSAGE+="➖ Skipped: $SKIPPED\n"
+  MESSAGE+="📊 Total: $TOTAL\n\n"
+  MESSAGE+="🔗 View the report: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/"
+else
+  MESSAGE="⚠️ Allure Report summary.json not found. Please check the pipeline logs."
+fi
 
-# Запуск локального сервера для Allure
-npx http-server allure-report -p 8080 &
-sleep 5 # Ждем, пока сервер запустится
-
-# Отправка скриншота в Telegram
-curl -F chat_id="${TELEGRAM_CHAT_ID}" \
-     -F photo="@allure-report/screenshot.png" \
-     -F caption="Allure Report Screenshot" \
-     "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto"
-
-# Завершение работы сервера
-kill %1
+# Отправка уведомления в Telegram
+curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto" \
+  -F chat_id="${TELEGRAM_CHAT_ID}" \
+  -F photo="@allure-report/widgets/summary-chart.json" \
+  -F caption="$MESSAGE"
