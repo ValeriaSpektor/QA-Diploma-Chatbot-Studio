@@ -1,44 +1,18 @@
-# Используем базовый образ Node.js
-FROM node:16-bullseye
+FROM mcr.microsoft.com/playwright:v1.37.0-focal
 
-# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
+# Установка зависимостей
 COPY package*.json ./
-
-# Устанавливаем зависимости
 RUN npm install
 
-# Копируем весь проект
+# Копирование проекта
 COPY . .
 
-# Обновляем систему и устанавливаем недостающие зависимости
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    libevent-dev \
-    libenchant-2-2 \
-    libicu-dev \
-    fonts-liberation \
-    openjdk-11-jdk-headless \
-    --no-install-recommends && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Устанавливаем Playwright
-RUN npx playwright install-deps
-RUN npx playwright install
-
-# Устанавливаем Allure CLI
+# Установка Allure
 RUN npm install -g allure-commandline --save-dev
 
-# Устанавливаем JAVA_HOME
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-ENV PATH=$JAVA_HOME/bin:$PATH
+# Установка Playwright Browsers
+RUN npx playwright install
 
-# Добавляем права на выполнение entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
-# Используем entrypoint.sh для запуска
-CMD ["/app/entrypoint.sh"]
+ENTRYPOINT ["sh", "/app/entrypoint.sh"]

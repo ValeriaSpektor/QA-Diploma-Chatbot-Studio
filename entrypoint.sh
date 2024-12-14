@@ -1,22 +1,25 @@
 #!/bin/bash
 
-# Запуск тестов Playwright
-npx playwright test
+# Запуск API тестов
+echo "Запуск API тестов"
+npx playwright test tests/api || { echo "API тесты завершились с ошибкой"; exit 1; }
+
+# Запуск UI тестов
+echo "Запуск UI тестов"
+npx playwright test tests/ui || { echo "UI тесты завершились с ошибкой"; exit 1; }
 
 # Генерация Allure отчета
-npx allure generate allure-results --clean -o allure-report
+echo "Генерация Allure отчета"
+npx allure generate allure-results --clean || { echo "Ошибка генерации Allure отчета"; exit 1; }
 
-# Загрузка Allure CLI
-curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
-chmod +x allurectl
+# Передача отчета в Allure TestOps (если используется)
+echo "Отправка отчета в Allure TestOps"
+curl -X POST -H "Authorization: Bearer $ALLURE_TOKEN" \
+  -F "allure-results=@allure-results.zip" \
+  https://allure.your-instance.com/api/send-results || { echo "Ошибка отправки отчета в Allure TestOps"; exit 1; }
 
-# Отправка отчета в Allure TestOps
-./allurectl upload --project-id $ALLURE_PROJECT_ID \
-                   --results-dir allure-results \
-                   --server $ALLURE_SERVER_URL \
-                   --token $ALLURE_TOKEN
-
-# Отправка уведомления в Telegram
+# Уведомление в Telegram (при необходимости)
+echo "Отправка уведомления в Telegram"
 curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-     -d chat_id=$TELEGRAM_CHAT_ID \
-     -d text="Уведомления о статусе CI/CD успешно подключены! Теперь вы будете получать отчеты о тестах и результатах загрузки.\n\nСсылка на отчет Allure: $ALLURE_REPORT_URL"
+  -d "chat_id=$TELEGRAM_CHAT_ID" \
+  -d "text=Тесты успешно завершены."
