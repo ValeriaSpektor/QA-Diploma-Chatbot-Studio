@@ -1,4 +1,4 @@
-name: CI-CD Pipeline with Docker
+name: CI/CD Pipeline with Docker and Allure Reporting
 
 on:
   push:
@@ -13,41 +13,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16
 
-      - name: Build Docker Image
-        run: docker build -t my-docker-image .
+    - name: Install dependencies
+      run: npm install
 
-      - name: Run Tests in Docker Container
-        run: |
-          docker run --rm \
-          -v ${{ github.workspace }}/allure-results:/app/allure-results \
-          -v ${{ github.workspace }}/allure-report:/app/allure-report \
-          my-docker-image
+    - name: Run tests and generate Allure report
+      run: |
+        npm test
+        npm run allure:generate
 
-      - name: Serve Allure Report
-        run: |
-          npx http-server allure-report -p 8080 &
+    - name: Serve Allure Report
+      run: |
+        nohup http-server ./allure-report -p 8080 > http-server.log 2>&1 &
 
-      - name: Deploy Allure Report to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./allure-report
+    - name: Notify Telegram
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+          -d chat_id="$TELEGRAM_CHAT_ID" \
+          -d parse_mode="Markdown" \
+          -d text="📝 *Allure Report*\n✅ *Passed:* 87\n❌ *Failed:* 10\n⚠️ *Broken:* 2\n➖ *Skipped:* 1\n📊 *Total:* 100\n\n🔗 [View the report](http://127.0.0.1:8080)"
 
-      - name: Notify Telegram
-        run: |
-          curl -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-               -F document=@allure-report/index.html \
-               -F caption="📝 Allure Report\n
-               ✅ Passed: 87\n
-               ❌ Failed: 10\n
-               ⚠️ Broken: 2\n
-               ➖ Skipped: 1\n
-               📊 Total: 100\n\n
-               🔗 View the report: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/" \
-               https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument
+    - name: Deploy Allure Report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./allure-report
