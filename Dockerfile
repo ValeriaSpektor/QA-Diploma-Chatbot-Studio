@@ -1,26 +1,41 @@
-# Используем официальный базовый образ Playwright с необходимыми зависимостями
-FROM mcr.microsoft.com/playwright:v1.37.0-focal
+# Используем базовый образ Node.js
+FROM node:16-bullseye
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем package.json и package-lock.json для установки зависимостей
+# Копируем package.json и package-lock.json
 COPY package*.json ./
 
 # Устанавливаем зависимости
-RUN npm ci
+RUN npm install
 
-# Устанавливаем Allure для создания отчетов
-RUN npm install -g allure-commandline --save-dev
-
-# Копируем все файлы проекта в контейнер
+# Копируем проект
 COPY . .
 
-# Устанавливаем браузеры Playwright
+# Устанавливаем недостающие зависимости
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    libevent-dev \
+    libenchant-2-2 \
+    libicu-dev \
+    fonts-liberation \
+    openjdk-11-jdk-headless \
+    --no-install-recommends && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Устанавливаем Playwright
+RUN npx playwright install-deps
 RUN npx playwright install
 
-# Устанавливаем переменные окружения для удобства конфигурации
-ENV NODE_ENV=production
+# Устанавливаем Allure CLI
+RUN npm install -g allure-commandline --save-dev
 
-# Указываем команду, которая будет выполняться при запуске контейнера
-ENTRYPOINT ["sh", "/app/entrypoint.sh"]
+# Устанавливаем JAVA_HOME
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+# Команда по умолчанию для запуска тестов
+CMD ["npx", "playwright", "test"]
