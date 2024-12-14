@@ -1,4 +1,4 @@
-name: CI-CD Pipeline with Docker and Allure
+name: CI-CD Pipeline with Docker
 
 on:
   push:
@@ -13,39 +13,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout the repository
+      # Проверяем код из репозитория
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Build Docker Image for Tests
+      # Строим Docker образ
       - name: Build Docker Image
         run: docker build -t my-docker-image .
 
-      # 3. Run Tests and Generate Allure Report
-      - name: Run Tests in Docker
+      # Запускаем тесты внутри Docker контейнера
+      - name: Run Tests in Docker Container
         run: |
           docker run --rm \
-          -v ${{ github.workspace }}/allure-results:/app/allure-results \
-          -v ${{ github.workspace }}/allure-report:/app/allure-report \
-          -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
-          -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
-          -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
-          -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
-          -e TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }} \
-          my-docker-image \
-          sh -c "./entrypoint.sh"
+            -e ALLURE_PROJECT_ID=${{ secrets.ALLURE_PROJECT_ID }} \
+            -e ALLURE_SERVER_URL=${{ secrets.ALLURE_SERVER_URL }} \
+            -e ALLURE_TOKEN=${{ secrets.ALLURE_TOKEN }} \
+            -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
+            -e TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }} \
+            -v ${{ github.workspace }}/allure-results:/app/allure-results \
+            -v ${{ github.workspace }}/allure-report:/app/allure-report \
+            my-docker-image
 
-      # 4. Deploy Allure Report to GitHub Pages
+      # Публикуем Allure отчет на GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
+          publish_branch: gh-pages
 
-      # 5. Send Telegram Notification with Allure Report Link
+      # Отправляем уведомление в Telegram
       - name: Notify Telegram
         run: |
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="Allure Report is available at: https://${{ github.repository_owner }}.github.io/${{ github.repository }}/"
-
+          -d text="Allure Report опубликован: https://<your-github-username>.github.io/<your-repository-name>"
