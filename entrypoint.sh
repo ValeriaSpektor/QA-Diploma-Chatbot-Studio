@@ -1,23 +1,43 @@
 #!/bin/bash
 
-# Останавливаем выполнение при ошибках
-set -e
+# Запуск тестов
+npx playwright test
+TEST_STATUS=$?
 
-echo "Запуск API тестов"
-npx playwright test tests/api || { echo "API тесты завершились с ошибкой"; exit 1; }
+# Проверяем, есть ли результаты Allure
+if [ ! -d "allure-results" ] || [ -z "$(ls -A allure-results)" ]; then
+  echo "❌ Ошибка: Allure результаты не созданы!"
+  exit 1
+fi
 
-echo "Запуск UI тестов"
-npx playwright test tests/ui || { echo "UI тесты завершились с ошибкой"; exit 1; }
+# Генерация Allure отчёта
+npx allure generate allure-results --clean -o allure-report
+if [ ! -d "allure-report" ]; then
+  echo "❌ Ошибка: Allure отчёт не создан!"
+  exit 1
+fi
 
-echo "Генерация Allure отчета"
-npx allure generate allure-results --clean || { echo "Ошибка генерации Allure отчета"; exit 1; }
+# Создание скриншота отчета
+ALLURE_REPORT_FILE="allure-report.png"
+npx playwright show-report --port=51705 &
+PLAYWRIGHT_PID=$!
+sleep 5 # Ждем запуска локального сервера
+curl http://localhost:51705/ --output $ALLURE_REPORT_FILE
+kill $PLAYWRIGHT_PID
 
-echo "Отправка отчета в Allure TestOps"
-curl -X POST -H "Authorization: Bearer $ALLURE_TOKEN" \
-  -F "allure-results=@allure-results.zip" \
-  https://allure.your-instance.com/api/send-results || { echo "Ошибка отправки отчета в Allure TestOps"; exit 1; }
-
-echo "Отправка уведомления в Telegram"
+# Уведомление в Telegram
 curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-  -d "chat_id=$TELEGRAM_CHAT_ID" \
-  -d "text=Тесты успешно завершены."
+     -d chat_id=$TELEGRAM_CHAT_ID \
+     -d text="✅ Тесты завершены. Отчёт Allure создан."
+
+# Отправка скриншота в Telegram
+if [ -f "$ALLURE_REPORT_FILE" ]; then
+  curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendPhoto" \
+       -F chat_id=$TELEGRAM_CHAT_ID \
+       -F photo=@"$ALLURE_REPORT_FILE" \
+       -F caption="Allure Report Screenshot"
+else
+  echo "❌ Скриншот Allure отчёта не создан!"
+fi
+
+exit $TEST_STATUS
