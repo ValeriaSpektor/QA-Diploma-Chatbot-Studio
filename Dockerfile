@@ -13,18 +13,32 @@ RUN npm install
 # Копируем весь проект
 COPY . .
 
-# Устанавливаем пользователя root
-USER root
+# Обновляем систему и устанавливаем недостающие зависимости
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    libevent-dev \
+    libenchant-2-2 \
+    libicu-dev \
+    fonts-liberation \
+    openjdk-11-jdk-headless \
+    --no-install-recommends && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем Playwright и зависимости
-RUN npx playwright install --with-deps
+# Устанавливаем Playwright
+RUN npx playwright install-deps
+RUN npx playwright install
 
 # Устанавливаем Allure CLI
 RUN npm install -g allure-commandline --save-dev
 
-# Возвращаемся к обычному пользователю node (опционально)
-USER node
+# Устанавливаем JAVA_HOME
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
 
-# Команда для запуска тестов
-CMD ["npx", "playwright", "test"]
+# Добавляем права на выполнение entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
+# Используем entrypoint.sh для запуска
+CMD ["/app/entrypoint.sh"]
