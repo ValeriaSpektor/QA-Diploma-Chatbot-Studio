@@ -22,17 +22,15 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     fonts-liberation \
     openjdk-11-jdk-headless \
+    xvfb \
+    wkhtmltopdf \
     --no-install-recommends && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Исправляем права для выполнения Playwright
-RUN mkdir -p /usr/local/share/.cache && \
-    chmod -R 777 /usr/local/share/.cache && \
-    chmod -R 777 /app
-
 # Устанавливаем Playwright
-RUN npx playwright install-deps && npx playwright install
+RUN npx playwright install-deps
+RUN npx playwright install
 
 # Устанавливаем Allure CLI
 RUN npm install -g allure-commandline --save-dev
@@ -41,8 +39,9 @@ RUN npm install -g allure-commandline --save-dev
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH
 
-# Добавляем права на выполнение entrypoint.sh
+# Копируем скрипт entrypoint.sh и даем ему права на выполнение
+COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Используем entrypoint.sh для запуска
+# Команда по умолчанию для запуска контейнера
 CMD ["/app/entrypoint.sh"]
