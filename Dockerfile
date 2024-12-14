@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     fonts-liberation \
     openjdk-11-jdk-headless \
+    wkhtmltopdf \ 
     --no-install-recommends && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -37,7 +38,7 @@ RUN npx playwright install-deps && npx playwright install
 # Устанавливаем Allure CLI
 RUN npm install -g allure-commandline --save-dev
 
-# Устанавливаем JAVA_HOME
+# Устанавливаем JAVA_HOME для Allure
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH
 

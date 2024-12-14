@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build-and-test:
@@ -22,6 +19,8 @@ jobs:
       - name: Run Tests in Docker Container
         run: |
           docker run --rm \
+          -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
+          -e TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }} \
           -v ${{ github.workspace }}/allure-results:/app/allure-results \
           -v ${{ github.workspace }}/allure-report:/app/allure-report \
           my-docker-image
@@ -31,9 +30,3 @@ jobs:
         with:
           github_token: ${{ secrets.GH_PAT }}
           publish_dir: ./allure-report
-
-      - name: Notify Telegram
-        run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d text="Allure Report is available at: https://<your-github-username>.github.io/<your-repository-name>"

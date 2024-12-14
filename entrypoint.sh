@@ -1,25 +1,19 @@
 #!/bin/bash
 
 # Запуск тестов Playwright
-echo "Running Playwright tests..."
 npx playwright test --reporter=allure-playwright
 
 # Генерация Allure отчета
-echo "Generating Allure report..."
 npx allure generate allure-results --clean -o allure-report
 
-# Создание скриншота отчета
-echo "Generating screenshot of Allure report..."
-apt-get update && apt-get install -y xvfb wkhtmltopdf
-xvfb-run wkhtmltoimage --width 1920 --height 1080 http://localhost:4000/index.html allure-report.png
+# Установка wkhtmltopdf для конвертации HTML в изображение
+apt-get update && apt-get install -y wkhtmltopdf
 
-# Проверка наличия Telegram токена и ID чата
-if [ ! -z "$TELEGRAM_BOT_TOKEN" ] && [ ! -z "$TELEGRAM_CHAT_ID" ]; then
-  echo "Sending Telegram notification with screenshot..."
-  curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendPhoto" \
-       -F chat_id=$TELEGRAM_CHAT_ID \
-       -F photo="@allure-report.png" \
-       -F caption="Playwright tests completed. Allure report screenshot attached."
-else
-  echo "Telegram notification skipped (missing credentials)."
-fi
+# Конвертация Allure-отчета в изображение (первую страницу отчета)
+wkhtmltoimage --width 800 allure-report/index.html allure-report/report.png
+
+# Отправка изображения в Telegram
+curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto" \
+     -F chat_id="${TELEGRAM_CHAT_ID}" \
+     -F photo="@allure-report/report.png" \
+     -F caption="Allure Report with Test Results"
