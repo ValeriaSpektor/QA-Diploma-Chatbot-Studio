@@ -13,7 +13,7 @@ RUN npm install
 # Копируем весь проект
 COPY . .
 
-# Устанавливаем зависимости для Playwright
+# Обновляем систему и устанавливаем недостающие зависимости
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -26,7 +26,12 @@ RUN apt-get update && apt-get install -y \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем Playwright и его зависимости
+# Исправляем права для выполнения Playwright
+RUN mkdir -p /usr/local/share/.cache && \
+    chmod -R 777 /usr/local/share/.cache && \
+    chmod -R 777 /app
+
+# Устанавливаем Playwright
 RUN npx playwright install-deps && npx playwright install
 
 # Устанавливаем Allure CLI
