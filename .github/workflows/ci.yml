@@ -13,19 +13,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Проверяем код из репозитория
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Устанавливаем Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Собираем Docker-образ
       - name: Build Docker Image
         run: docker build -t my-docker-image .
 
-      # Запускаем тесты в контейнере Docker
       - name: Run Tests in Docker Container
         run: |
           docker run --rm \
@@ -33,23 +29,21 @@ jobs:
           -v ${{ github.workspace }}/allure-report:/app/allure-report \
           my-docker-image
 
-      # Деплой отчета Allure на GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
 
-      # Отправка уведомления в Telegram
       - name: Notify Telegram
         run: |
           curl -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
                -F document=@allure-report/index.html \
                -F caption="📝 Allure Report\n
-✅ Passed: 87\n
-❌ Failed: 10\n
-⚠️ Broken: 2\n
-➖ Skipped: 1\n
-📊 Total: 100\n\n
-🔗 View the report: https://<ваш-сайт>/allure-report/" \
+               ✅ Passed: 87\n
+               ❌ Failed: 10\n
+               ⚠️ Broken: 2\n
+               ➖ Skipped: 1\n
+               📊 Total: 100\n\n
+               🔗 View the report: https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/" \
                https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument
