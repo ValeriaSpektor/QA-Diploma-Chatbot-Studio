@@ -6,7 +6,7 @@ export default defineConfig({
   expect: {
     timeout: 5000, // Таймаут для ожиданий
   },
-  retries: 2, // Добавьте несколько повторных запусков тестов
+  retries: 0, // Количество повторных запусков тестов в случае их падения
   reporter: [
     ['allure-playwright'], // Подключение Allure как репортера
     ['html', { open: 'never' }], // HTML отчет (можно использовать для локального просмотра)
@@ -16,26 +16,8 @@ export default defineConfig({
     headless: true, // Запуск тестов в headless режиме
     viewport: { width: 1280, height: 720 }, // Размер экрана браузера
     ignoreHTTPSErrors: true, // Игнорирование ошибок HTTPS
-    screenshot: 'only-on-failure', // Делать скриншоты только при падении тестов
-    trace: 'retain-on-failure', // Сохранять трассировку только при падении
+    screenshot: 'on', // Делать скриншоты для каждого шага
+    trace: 'on', // Включить сбор трасс
     video: 'retain-on-failure', // Записывать видео только при падении тестов
-    baseURL: process.env.BASE_URL || 'http://localhost:3000', // Добавьте базовый URL
-    actionTimeout: 10000, // Таймаут для пользовательских действий
-    navigationTimeout: 15000, // Таймаут для навигации
   },
-  projects: [
-    {
-      name: 'Chromium',
-      use: { browserName: 'chromium' },
-    },
-    {
-      name: 'Firefox',
-      use: { browserName: 'firefox' },
-    },
-    {
-      name: 'Webkit',
-      use: { browserName: 'webkit' },
-    },
-  ],
-  outputDir: 'test-results/', // Папка для хранения результатов тестов
 });
