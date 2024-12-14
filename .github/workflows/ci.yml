@@ -20,11 +20,11 @@ jobs:
         with:
           node-version: '16'
 
-      - name: Install dependencies
-        run: npm install --unsafe-perm
+      - name: Install Playwright Dependencies
+        run: npx playwright install-deps
 
       - name: Install Playwright Browsers
-        run: npx playwright install-deps && npx playwright install
+        run: npx playwright install
 
       - name: Install Allure CLI
         run: npm install -g allure-commandline --save-dev
@@ -43,7 +43,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
 
-      - name: Send notification to Telegram
+      - name: Send Notification to Telegram
         if: ${{ always() }}
         run: |
           passed=$(grep -c '"status":"passed"' allure-results/* || true)
