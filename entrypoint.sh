@@ -1,10 +1,17 @@
 #!/bin/bash
 
-# Запускаем тесты с Playwright и сохраняем результаты в Allure
-npx playwright test --reporter=allure-playwright
+# Fail immediately if any command exits with a non-zero status
+set -e
 
-# Генерируем отчет Allure
-allure generate allure-results --clean -o allure-report
+# Run Playwright tests
+echo "Running Playwright tests..."
+npx playwright test
 
-# Запускаем HTTP-сервер для отображения отчета Allure
-http-server allure-report -p 8080
+# Generate Allure Report
+echo "Generating Allure Report..."
+npx allure generate ./allure-results --clean -o ./allure-report
+
+# Serve Allure Report
+echo "Serving Allure Report..."
+npx http-server ./allure-report -p 8080 &
+
