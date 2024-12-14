@@ -1,25 +1,48 @@
-name: Docker Tests with Allure and Telegram Integration
+name: CI-CD Pipeline with Docker, Allure, and Telegram
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  docker-tests:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: npm install
+      - name: Build Docker Image
+        run: docker build -t playwright-tests .
 
-      - name: Run Tests and Send Telegram Report
+      - name: Run Tests Inside Docker
         run: |
-          chmod +x entrypoint.sh
-          ./entrypoint.sh
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          docker run --rm \
+            -v $(pwd)/allure-results:/app/allure-results \
+            -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
+            -e TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }} \
+            playwright-tests
+
+      - name: Generate Allure Report
+        run: |
+          docker run --rm \
+            -v $(pwd)/allure-results:/app/allure-results \
+            -v $(pwd)/allure-report:/app/allure-report \
+            playwright-tests allure generate /app/allure-results --clean -o /app/allure-report
+
+      - name: Send Telegram Notification
+        run: |
+          docker run --rm \
+            -v $(pwd)/telegram.json:/app/telegram.json \
+            -v $(pwd)/allure-report:/app/allure-report \
+            playwright-tests java "-DconfigFile=/app/telegram.json" -jar /app/notifications/allure-notifications-4.8.0.jar
+
+      - name: Upload Allure Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report
+          path: allure-report/
