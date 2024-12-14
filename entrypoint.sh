@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Запуск Playwright тестов
+# Запуск тестов
 npx playwright test --reporter=allure-playwright
 
 # Генерация Allure отчета
 npx allure generate allure-results --clean -o allure-report
 
-# Проверка существования summary.json
+# Проверка summary.json
 SUMMARY_FILE="allure-report/widgets/summary.json"
 if [ -f "$SUMMARY_FILE" ]; then
   PASSED=$(jq '.statistic.passed' $SUMMARY_FILE)
@@ -15,19 +15,19 @@ if [ -f "$SUMMARY_FILE" ]; then
   SKIPPED=$(jq '.statistic.skipped' $SUMMARY_FILE)
   TOTAL=$(jq '.statistic.total' $SUMMARY_FILE)
 
-  # Формируем сообщение для Telegram
+  # Формируем сообщение
   MESSAGE="📝 Allure Report\n"
   MESSAGE+="✅ Passed: $PASSED\n"
   MESSAGE+="❌ Failed: $FAILED\n"
   MESSAGE+="⚠️ Broken: $BROKEN\n"
   MESSAGE+="➖ Skipped: $SKIPPED\n"
   MESSAGE+="📊 Total: $TOTAL\n\n"
-  MESSAGE+="🔗 View the report: https://<your-site>/allure-report/index.html"
+  MESSAGE+="🔗 View the report: https://<your-site>/allure-report/"
 
-  # Отправляем сообщение в Telegram
+  # Отправляем в Telegram
   curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-      -d chat_id="${TELEGRAM_CHAT_ID}" \
-      -d text="$MESSAGE"
+    -d chat_id="${TELEGRAM_CHAT_ID}" \
+    -d text="$MESSAGE"
 else
   echo "⚠️ summary.json not found!"
 fi
