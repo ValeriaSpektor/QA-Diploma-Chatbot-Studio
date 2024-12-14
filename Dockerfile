@@ -1,16 +1,31 @@
-FROM node:16-bullseye
+# Используем базовый образ Playwright
+FROM mcr.microsoft.com/playwright:v1.39.0-focal
 
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
+# Копируем package.json и package-lock.json
 COPY package*.json ./
+
+# Устанавливаем зависимости
 RUN npm install
 
+# Копируем весь проект
 COPY . .
 
-RUN npx playwright install --with-deps
+# Добавляем права на выполнение для всех файлов
+RUN chmod -R 777 /app
+
+# Устанавливаем Allure CLI
 RUN npm install -g allure-commandline --save-dev
 
-# Скачиваем JAR файл для уведомлений
-RUN wget -O /app/allure-notifications-4.8.0.jar https://repo.maven.apache.org/maven2/io/qameta/allure/allure-notifications/4.8.0/allure-notifications-4.8.0.jar
+# Устанавливаем переменные окружения для Java
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
 
-CMD ["sh", "-c", "npx playwright test --reporter=allure-playwright && allure generate allure-results --clean -o allure-report"]
+# Добавляем скрипт entrypoint.sh
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Команда для запуска entrypoint.sh
+CMD ["/app/entrypoint.sh"]
