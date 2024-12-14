@@ -1,51 +1,34 @@
-# Используем базовый образ Node.js
+# Базовый образ
 FROM node:16-bullseye
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем package.json и package-lock.json для установки зависимостей
+# Копируем файлы package.json и package-lock.json
 COPY package*.json ./
 
 # Устанавливаем зависимости
 RUN npm install
 
-# Обновляем систему и устанавливаем зависимости для Playwright и Java
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    libevent-dev \
-    libenchant-2-2 \
-    libicu-dev \
-    fonts-liberation \
-    openjdk-11-jdk-headless \
-    --no-install-recommends && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Копируем весь проект
+COPY . .
 
-# Устанавливаем Playwright
-RUN npx playwright install-deps
-RUN npx playwright install
+# Устанавливаем зависимости для Playwright
+RUN npx playwright install --with-deps
 
 # Устанавливаем Allure CLI
 RUN npm install -g allure-commandline --save-dev
 
-# Настраиваем JAVA_HOME
+# Устанавливаем Java для Allure-уведомлений
+RUN apt-get update && apt-get install -y openjdk-11-jdk
+
+# Настраиваем переменные окружения для Java
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH
 
-# Копируем весь проект в контейнер
-COPY . .
-
-# Копируем файл telegram.json
-COPY notifications/telegram.json /app/notifications/telegram.json
-
-# Копируем JAR-файл для уведомлений
-COPY notifications/allure-notifications-4.8.0.jar /app/allure-notifications-4.8.0.jar
-
-# Копируем скрипт entrypoint.sh
-COPY entrypoint.sh /app/entrypoint.sh
+# Настраиваем права для всех исполняемых файлов
 RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /usr/local/bin/playwright
 
-# Команда по умолчанию для запуска
+# Команда для запуска тестов
 CMD ["/app/entrypoint.sh"]

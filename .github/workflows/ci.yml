@@ -13,38 +13,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repository
+      # Шаг 1: Клонирование репозитория
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Set up Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
+      # Шаг 2: Установка Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      # Cache Node.js modules
-      - name: Cache Node modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      # Install dependencies
-      - name: Install dependencies
-        run: npm install
-
-      # Build and run Docker
-      - name: Build and Run Docker
+      # Шаг 3: Сборка Docker-образа
+      - name: Build Docker Image
         run: |
           docker build -t playwright-tests .
-          docker run --rm \
-            -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
-            -e TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }} \
-            playwright-tests
 
-    env:
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      # Шаг 4: Запуск контейнера и тестов
+      - name: Run Tests Inside Docker
+        run: |
+          docker run --rm \
+          -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
+          -e TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }} \
+          playwright-tests
+
+      # Шаг 5: Генерация Allure-отчета
+      - name: Generate Allure Report
+        run: |
+          docker cp $(docker ps -q):/app/allure-report ./allure-report
+
+      # Шаг 6: Загрузка Allure-отчета
+      - name: Upload Allure Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report
+          path: allure-report
+
+      # Шаг 7: Отправка уведомления в Telegram
+      - name: Send Telegram Notification
+        run: |
+          docker run --rm \
+          -v $(pwd)/notifications:/app/notifications \
+          playwright-tests java -jar /app/allure-notifications-4.8.0.jar
