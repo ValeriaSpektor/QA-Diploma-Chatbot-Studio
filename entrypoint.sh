@@ -1,22 +1,37 @@
 #!/bin/bash
 
-# Запуск тестов Playwright
-npx playwright test
+# Проверяем, существует ли файл telegram.json
+echo "Checking if telegram.json exists..."
+if [ -f "/app/notifications/telegram.json" ]; then
+  echo "telegram.json found:"
+  cat /app/notifications/telegram.json
+else
+  echo "telegram.json NOT found!"
+  exit 1
+fi
 
-# Генерация Allure отчета
-npx allure generate allure-results --clean -o allure-report
+# Запускаем тесты Playwright
+echo "Running Playwright tests..."
+npx playwright test --reporter=allure-playwright
+if [ $? -ne 0 ]; then
+  echo "Playwright tests failed!"
+  exit 1
+fi
 
-# Загрузка Allure CLI
-curl -o allurectl https://repo.maven.apache.org/maven2/io/qameta/allure/allurectl/2.13.10/allurectl-2.13.10-linux-x86_64
-chmod +x allurectl
+# Генерируем Allure-отчет
+echo "Generating Allure report..."
+allure generate allure-results --clean -o allure-report
+if [ $? -ne 0 ]; then
+  echo "Failed to generate Allure report!"
+  exit 1
+fi
 
-# Отправка отчета в Allure TestOps
-./allurectl upload --project-id $ALLURE_PROJECT_ID \
-                   --results-dir allure-results \
-                   --server $ALLURE_SERVER_URL \
-                   --token $ALLURE_TOKEN
+# Отправляем уведомление в Telegram через Allure Notifications
+echo "Sending Telegram notification..."
+java -jar /app/allure-notifications-4.8.0.jar --config /app/notifications/telegram.json
+if [ $? -ne 0 ]; then
+  echo "Failed to send Telegram notification!"
+  exit 1
+fi
 
-# Отправка уведомления в Telegram
-curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-     -d chat_id=$TELEGRAM_CHAT_ID \
-     -d text="Уведомления о статусе CI/CD успешно подключены! Теперь вы будете получать отчеты о тестах и результатах загрузки.\n\nСсылка на отчет Allure: $ALLURE_REPORT_URL"
+echo "All tasks completed successfully!"

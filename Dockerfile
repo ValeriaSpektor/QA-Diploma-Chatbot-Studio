@@ -4,16 +4,13 @@ FROM node:16-bullseye
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
+# Копируем package.json и package-lock.json для установки зависимостей
 COPY package*.json ./
 
 # Устанавливаем зависимости
 RUN npm install
 
-# Копируем весь проект
-COPY . .
-
-# Обновляем систему и устанавливаем недостающие зависимости
+# Обновляем систему и устанавливаем зависимости для Playwright и Java
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -33,12 +30,22 @@ RUN npx playwright install
 # Устанавливаем Allure CLI
 RUN npm install -g allure-commandline --save-dev
 
-# Устанавливаем JAVA_HOME
+# Настраиваем JAVA_HOME
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH
 
-# Добавляем права на выполнение entrypoint.sh
+# Копируем весь проект в контейнер
+COPY . .
+
+# Копируем файл telegram.json
+COPY notifications/telegram.json /app/notifications/telegram.json
+
+# Копируем JAR-файл для уведомлений
+COPY notifications/allure-notifications-4.8.0.jar /app/allure-notifications-4.8.0.jar
+
+# Копируем скрипт entrypoint.sh
+COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Используем entrypoint.sh для запуска
+# Команда по умолчанию для запуска
 CMD ["/app/entrypoint.sh"]
