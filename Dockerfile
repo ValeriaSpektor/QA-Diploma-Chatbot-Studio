@@ -46,9 +46,6 @@ RUN npm install -g http-server
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH
 
-# Проверяем наличие entrypoint.sh
-RUN ls -la /app/entrypoint.sh
-
 # Добавляем права на выполнение entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
