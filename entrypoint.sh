@@ -1,27 +1,14 @@
 #!/bin/bash
-
-# Остановка скрипта при любой ошибке
 set -e
 
-echo ">>> Установка зависимостей Playwright"
-npx playwright install
+# Запускаем тесты Playwright
+echo "Running tests..."
+npx playwright test --reporter=line,allure-playwright
 
-echo ">>> Запуск тестов Playwright"
-npx playwright test || {
-  echo ">>> Ошибка при выполнении тестов Playwright"
-  exit 1
-}
+# Генерируем Allure отчет
+echo "Generating Allure report..."
+allure generate allure-results --clean -o allure-report
 
-echo ">>> Генерация Allure-отчета"
-npx allure generate --clean ./allure-results || {
-  echo ">>> Ошибка при генерации Allure-отчета"
-  exit 1
-}
-
-echo ">>> Запуск локального сервера для Allure-отчета"
-http-server ./allure-report -p 8080 &
-
-echo ">>> Отчет доступен по адресу: http://localhost:8080"
-
-# Поддерживаем контейнер активным, чтобы сервер продолжал работать
-tail -f /dev/null
+# Поднимаем HTTP сервер для просмотра Allure отчета
+echo "Starting HTTP server for Allure report..."
+npx http-server allure-report -p 8080
