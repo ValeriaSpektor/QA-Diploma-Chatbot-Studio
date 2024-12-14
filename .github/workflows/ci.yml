@@ -1,4 +1,4 @@
-name: Build and Test
+name: CI Pipeline
 
 on:
   push:
@@ -19,24 +19,19 @@ jobs:
         with:
           node-version: 16
 
-      - name: Cache Node.js modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Docker Image
+      - name: Build Docker image
         run: |
           docker build -t my-docker-image .
 
       - name: Run tests in Docker
         run: |
-          docker run --rm -v ${{ github.workspace }}/allure-results:/app/allure-results my-docker-image
+          docker run --rm \
+            -v ${{ github.workspace }}/allure-results:/app/allure-results \
+            -v ${{ github.workspace }}/allure-report:/app/allure-report \
+            my-docker-image
 
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
@@ -45,10 +40,14 @@ jobs:
           publish_dir: ./allure-report
 
       - name: Notify Telegram
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          curl -X POST https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage \
-          -d chat_id=$TELEGRAM_CHAT_ID \
-          -d text="📝 Allure Report: [Link to Allure Report](https://<ваш репозиторий>/allure-report/index.html)"
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="📝 *Allure Report*%0A
+            ✅ *Passed:* $(grep -oP '(?<=passed": )\d+' allure-results/widgets/summary.json)%0A
+            ❌ *Failed:* $(grep -oP '(?<=failed": )\d+' allure-results/widgets/summary.json)%0A
+            ⚠️ *Broken:* $(grep -oP '(?<=broken": )\d+' allure-results/widgets/summary.json)%0A
+            ➖ *Skipped:* $(grep -oP '(?<=skipped": )\d+' allure-results/widgets/summary.json)%0A
+            📊 *Total:* $(grep -oP '(?<=total": )\d+' allure-results/widgets/summary.json)%0A
+            🔗 [View Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.repository }}/)"

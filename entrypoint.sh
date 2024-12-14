@@ -1,14 +1,28 @@
 #!/bin/bash
-set -e
 
-# Запускаем тесты Playwright
-echo "Running tests..."
-npx playwright test --reporter=line,allure-playwright
+# Логирование для отладки
+echo "Запуск сервера для Allure-отчета..."
 
-# Генерируем Allure отчет
-echo "Generating Allure report..."
-allure generate allure-results --clean -o allure-report
+# Запускаем http-server для Allure-отчета
+http-server /app/allure-report -p 8080 &
+SERVER_PID=$!
 
-# Поднимаем HTTP сервер для просмотра Allure отчета
-echo "Starting HTTP server for Allure report..."
-npx http-server allure-report -p 8080
+# Ждем, пока сервер запустится
+echo "Ждем 5 секунд для запуска сервера..."
+sleep 5
+
+# Логируем запуск тестов
+echo "Запуск тестов Playwright..."
+npx playwright test || {
+  echo "Тесты завершились с ошибкой. Завершаем процесс..."
+  kill $SERVER_PID
+  exit 1
+}
+
+# Остановка сервера
+echo "Остановка сервера..."
+kill $SERVER_PID
+
+# Если все успешно
+echo "Тестирование завершено успешно!"
+exit 0
