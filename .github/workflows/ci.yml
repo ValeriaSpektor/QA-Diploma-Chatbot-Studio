@@ -26,6 +26,13 @@ jobs:
           npx playwright test
           npx allure generate allure-results --clean -o allure-report
 
+      - name: Check Allure Results
+        run: |
+          if [ ! -d "allure-results" ]; then
+            echo "No allure-results found!";
+            exit 1;
+          fi
+
       - name: Serve Allure Report
         run: |
           npx http-server allure-report -p 8080 &
