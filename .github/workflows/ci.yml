@@ -1,4 +1,4 @@
-name: Playwright Tests in Docker
+name: Playwright Tests with Allure
 
 on:
   workflow_dispatch: # Ручной запуск автотестов
@@ -9,26 +9,27 @@ on:
 
 jobs:
   test:
-    name: Run Playwright Tests in Docker
+    name: Run Playwright Tests
     timeout-minutes: 60
     runs-on: ubuntu-latest
 
     steps:
-      # Получаем код репозитория
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Сборка Docker-образа
-      - name: Build Docker image
-        run: docker build -t playwright-tests .
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
 
-      # Запуск тестов в Docker-контейнере
-      - name: Run tests in Docker
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}/allure-results:/app/allure-results \
-            -v ${{ github.workspace }}/allure-report:/app/allure-report \
-            playwright-tests
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test
 
       # Сохраняем результаты Allure
       - name: Upload Allure results
@@ -40,8 +41,8 @@ jobs:
           path: allure-results
           retention-days: 20
 
-      # Генерация отчета Allure с сохранением истории
-      - name: Generate Allure Report
+      # Формируем отчет Allure и сохраняем историю
+      - name: Generate and Save Allure Report
         uses: simple-elf/allure-report-action@master
         if: always()
         id: allure-report
@@ -52,7 +53,7 @@ jobs:
           allure_history: allure-history
           keep_reports: 20
 
-      # Деплой Allure-отчета на GitHub Pages
+      # Деплой отчета Allure на GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v4
