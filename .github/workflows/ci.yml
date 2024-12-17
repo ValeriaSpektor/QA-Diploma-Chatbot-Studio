@@ -16,7 +16,7 @@ jobs:
       - name: Build Docker image
         run: docker build -t playwright-tests .
 
-      # Запуск тестов в Docker контейнере
+      # Запуск тестов в Docker
       - name: Run tests in Docker
         run: |
           docker run --rm \
@@ -24,7 +24,7 @@ jobs:
             -v ${{ github.workspace }}/allure-report:/app/allure-report \
             playwright-tests
 
-      # Сохраняем результаты Allure
+      # Сохранение Allure результатов
       - name: Upload Allure results
         uses: actions/upload-artifact@v4
         if: always()
@@ -33,7 +33,7 @@ jobs:
           path: allure-results
           retention-days: 20
 
-      # Генерация отчета Allure
+      # Генерация Allure отчета
       - name: Generate Allure Report
         uses: simple-elf/allure-report-action@master
         if: always()
@@ -53,3 +53,14 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: allure-history
+
+      # Отправка уведомления в Telegram
+      - name: Notify Telegram with Image
+        if: always()
+        run: |
+          java -jar notifications/allure-notifications.jar \
+          --configFile notifications/config.json \
+          --telegramToken "${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+          --telegramChatId "${{ secrets.TELEGRAM_CHAT_ID }}" \
+          --allureResults "allure-results" \
+          --reportLink "https://${{ github.repository_owner }}.github.io/${{ github.repository }}"
