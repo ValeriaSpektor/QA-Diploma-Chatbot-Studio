@@ -1,2 +1,0 @@
-Response status: 404
-Response body: { message: 'Incorrect password.' }
