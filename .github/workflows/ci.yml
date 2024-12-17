@@ -11,81 +11,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Шаг 1: Клонирование репозитория
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Шаг 2: Установка Node.js версии 20
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      # Шаг 3: Установка зависимостей
       - name: Install dependencies
         run: npm ci
 
-      # Шаг 4: Сборка Docker-образа
       - name: Build Docker image
         run: |
           docker build -t my-docker-image .
 
-      # Шаг 5: Запуск тестов в Docker
       - name: Run tests in Docker
         run: |
           docker run --rm \
             -v ${{ github.workspace }}/allure-results:/app/allure-results \
+            -v ${{ github.workspace }}/allure-report:/app/allure-report \
             my-docker-image
 
-      # Шаг 6: Проверка содержимого allure-results
-      - name: Check Allure Results
-        run: |
-          echo "Checking allure-results directory..."
-          ls -l allure-results
-
-      # Шаг 7: Генерация Allure Report
       - name: Generate Allure Report
         run: |
-          npm install -g allure-commandline
           allure generate allure-results -o allure-report --clean
-          echo "Allure Report generated successfully."
-          ls -l allure-report  # Логирование содержимого отчета
-          sleep 5  # Дополнительное ожидание для завершения всех процессов
 
-      # Шаг 8: Создание скриншота Allure Report
-      - name: Take Screenshot of Allure Report
-        uses: browser-actions/setup-chromium@v1
-      - run: |
-          chromium --headless --disable-gpu --screenshot \
-          --window-size=1280,1024 file://${{ github.workspace }}/allure-report/index.html
-          mv screenshot.png allure-report.png
-          echo "Screenshot captured successfully."
+      - name: Send Telegram Notification
+        run: |
+          java -jar notifications/allure-notifications.jar \
+            --config notifications/config.json \
+            --folder allure-report
 
-      # Шаг 9: Деплой Allure Report на GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
-
-      # Шаг 10: Уведомление в Telegram
-      - name: Notify Telegram with Allure Report
-        run: |
-          TOTAL_PASSED=$(grep -oP '(?<=passed": )\d+' allure-results/widgets/summary.json || echo 0)
-          TOTAL_FAILED=$(grep -oP '(?<=failed": )\d+' allure-results/widgets/summary.json || echo 0)
-          TOTAL_BROKEN=$(grep -oP '(?<=broken": )\d+' allure-results/widgets/summary.json || echo 0)
-          TOTAL_SKIPPED=$(grep -oP '(?<=skipped": )\d+' allure-results/widgets/summary.json || echo 0)
-          TOTAL=$(grep -oP '(?<=total": )\d+' allure-results/widgets/summary.json || echo 0)
-
-          MESSAGE="📝 *Allure Report*
-          ✅ *Passed:* $TOTAL_PASSED
-          ❌ *Failed:* $TOTAL_FAILED
-          ⚠️ *Broken:* $TOTAL_BROKEN
-          ➖ *Skipped:* $TOTAL_SKIPPED
-          📊 *Total:* $TOTAL
-          🔗 [View Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.repository }}/)"
-
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto" \
-            -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -F photo="@allure-report.png" \
-            -F caption="$MESSAGE"

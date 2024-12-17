@@ -1,53 +1,21 @@
-# Используем базовый образ Node.js
-FROM node:16-bullseye
+FROM mcr.microsoft.com/playwright:v1.39.0-jammy
 
-# Устанавливаем рабочую директорию
+# Установка Java для Allure Notifications
+RUN apt-get update && apt-get install -y openjdk-11-jdk
+
+# Установка Allure CLI
+RUN curl -o allure-2.21.0.tgz -L https://github.com/allure-framework/allure2/releases/download/2.21.0/allure-2.21.0.tgz && \
+    tar -zxvf allure-2.21.0.tgz && \
+    mv allure-2.21.0 /opt/allure && \
+    ln -s /opt/allure/bin/allure /usr/bin/allure
+
+# Установка зависимостей
 WORKDIR /app
-
-# Копируем package.json и package-lock.json
 COPY package*.json ./
-
-# Устанавливаем зависимости
 RUN npm install
 
-# Копируем весь проект
+# Копирование тестов и конфигурации
 COPY . .
 
-# Обновляем систему и устанавливаем недостающие зависимости
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    libevent-dev \
-    libenchant-2-2 \
-    libicu-dev \
-    fonts-liberation \
-    openjdk-11-jdk-headless \
-    xvfb \
-    wkhtmltopdf \
-    --no-install-recommends && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Исправляем права для выполнения Playwright
-RUN mkdir -p /usr/local/share/.cache && \
-    chmod -R 777 /usr/local/share/.cache && \
-    chmod -R 777 /app
-
-# Устанавливаем Playwright
-RUN npx playwright install-deps && npx playwright install
-
-# Устанавливаем Allure CLI
-RUN npm install -g allure-commandline --save-dev
-
-# Устанавливаем http-server для локального сервера Allure
-RUN npm install -g http-server
-
-# Устанавливаем JAVA_HOME
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-ENV PATH=$JAVA_HOME/bin:$PATH
-
-# Добавляем права на выполнение entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
-# Используем entrypoint.sh для запуска
-CMD ["/app/entrypoint.sh"]
+# Запуск тестов и генерация Allure Report
+CMD ["sh", "-c", "npx playwright test && allure generate allure-results -o allure-report --clean"]
