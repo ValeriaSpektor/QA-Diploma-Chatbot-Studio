@@ -17,7 +17,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 20
 
       - name: Install dependencies
         run: npm ci
@@ -33,21 +33,44 @@ jobs:
             -v ${{ github.workspace }}/allure-report:/app/allure-report \
             my-docker-image
 
+      - name: Generate Allure Report
+        run: |
+          npm install -g allure-commandline
+          allure generate allure-results -o allure-report --clean
+
+      - name: Take a screenshot of Allure Report
+        uses: browser-actions/setup-chromium@v1
+      - run: |
+          chromium --headless --disable-gpu --screenshot \
+          --window-size=1280,1024 file://${{ github.workspace }}/allure-report/index.html
+          mv screenshot.png allure-report.png
+
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
 
-      - name: Notify Telegram
+      - name: Notify Telegram with Image
         run: |
-          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d parse_mode="Markdown" \
-            -d text="📝 *Allure Report*%0A
-            ✅ *Passed:* $(grep -oP '(?<=passed": )\d+' allure-results/widgets/summary.json)%0A
-            ❌ *Failed:* $(grep -oP '(?<=failed": )\d+' allure-results/widgets/summary.json)%0A
-            ⚠️ *Broken:* $(grep -oP '(?<=broken": )\d+' allure-results/widgets/summary.json)%0A
-            ➖ *Skipped:* $(grep -oP '(?<=skipped": )\d+' allure-results/widgets/summary.json)%0A
-            📊 *Total:* $(grep -oP '(?<=total": )\d+' allure-results/widgets/summary.json)%0A
-            🔗 [View Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.repository }}/)"
+          # Получение данных из Allure Report
+          TOTAL_PASSED=$(grep -oP '(?<=passed": )\d+' allure-results/widgets/summary.json || echo 0)
+          TOTAL_FAILED=$(grep -oP '(?<=failed": )\d+' allure-results/widgets/summary.json || echo 0)
+          TOTAL_BROKEN=$(grep -oP '(?<=broken": )\d+' allure-results/widgets/summary.json || echo 0)
+          TOTAL_SKIPPED=$(grep -oP '(?<=skipped": )\d+' allure-results/widgets/summary.json || echo 0)
+          TOTAL=$(grep -oP '(?<=total": )\d+' allure-results/widgets/summary.json || echo 0)
+
+          # Формирование сообщения для Telegram
+          MESSAGE="📝 *Allure Report*
+          ✅ *Passed:* $TOTAL_PASSED
+          ❌ *Failed:* $TOTAL_FAILED
+          ⚠️ *Broken:* $TOTAL_BROKEN
+          ➖ *Skipped:* $TOTAL_SKIPPED
+          📊 *Total:* $TOTAL
+          🔗 [View Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.repository }}/)"
+
+          # Отправка изображения и сообщения в Telegram
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto" \
+            -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -F photo="@allure-report.png" \
+            -F caption="$MESSAGE"
