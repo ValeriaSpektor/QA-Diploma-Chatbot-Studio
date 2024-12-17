@@ -1,21 +1,16 @@
-# Используем официальный Node.js образ с Playwright
 FROM mcr.microsoft.com/playwright:v1.49.0-jammy
 
-# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем package.json и устанавливаем зависимости
+# Установка зависимостей проекта
 COPY package*.json ./
 RUN npm install
 
-# Устанавливаем Playwright с зависимостями
-RUN npx playwright install --with-deps
-
-# Устанавливаем права на бинарные файлы Playwright
+# Добавление прав на выполнение Playwright
 RUN chmod -R 755 /app/node_modules/.bin
 
-# Копируем все файлы проекта
+# Копирование кода проекта
 COPY . .
 
-# Запускаем тесты Playwright
+# Команда для запуска Playwright тестов
 CMD ["npx", "playwright", "test"]
