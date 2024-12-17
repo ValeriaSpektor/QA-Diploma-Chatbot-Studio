@@ -1,21 +1,20 @@
-FROM mcr.microsoft.com/playwright:v1.49.1-jammy
+# Используем официальный Node.js образ
+FROM mcr.microsoft.com/playwright:v1.49.0-jammy
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
+# Копируем package.json и устанавливаем зависимости
 COPY package*.json ./
-
-# Устанавливаем зависимости
 RUN npm install
 
-# Устанавливаем Playwright
+# Устанавливаем Playwright с зависимостями
 RUN npx playwright install --with-deps
 
 # Устанавливаем права на Playwright
 RUN chmod +x /app/node_modules/.bin/playwright
 
-# Копируем весь проект
+# Копируем все файлы проекта
 COPY . .
 
 # Запускаем тесты Playwright
