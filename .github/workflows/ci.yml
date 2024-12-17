@@ -11,65 +11,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Проверка репозитория
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Установка Node.js версии 20
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      # 3. Установка зависимостей
       - name: Install dependencies
         run: npm ci
 
-      # 4. Сборка Docker образа с Playwright и Edge
       - name: Build Docker image
         run: |
-          docker build -t playwright-docker-edge .
-      
-      # 5. Запуск тестов в Docker с Microsoft Edge
+          docker build -t my-docker-image .
+
       - name: Run tests in Docker
         run: |
           docker run --rm \
             -v ${{ github.workspace }}/allure-results:/app/allure-results \
             -v ${{ github.workspace }}/allure-report:/app/allure-report \
-            -e BROWSER=edge \
-            playwright-docker-edge
+            my-docker-image
 
-      # 6. Генерация Allure Report
-      - name: Generate Allure Report
-        run: |
-          npm run allure:generate
-
-      # 7. Публикация Allure Report на GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./allure-report
 
-      # 8. Уведомление в Telegram с изображением отчета
       - name: Notify Telegram with Image
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendPhoto" \
-            -F chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -F photo="https://${{ github.repository_owner }}.github.io/${{ github.repository }}/widgets/summary.json" \
-            -F caption="📝 Allure Report%0A
-            ✅ Passed: $(grep -oP '(?<=passed": )\d+' allure-results/widgets/summary.json)%0A
-            ❌ Failed: $(grep -oP '(?<=failed": )\d+' allure-results/widgets/summary.json)%0A
-            ⚠️ Broken: $(grep -oP '(?<=broken": )\d+' allure-results/widgets/summary.json)%0A
-            ➖ Skipped: $(grep -oP '(?<=skipped": )\d+' allure-results/widgets/summary.json)%0A
-            📊 Total: $(grep -oP '(?<=total": )\d+' allure-results/widgets/summary.json)%0A
-            🔗 [View Allure Report](https://${{ github.repository_owner }}.github.io/${{ github.repository }}/)"
-
-      # 9. Кэширование Node.js модулей
-      - name: Cache Node.js modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          java -jar notifications/allure-notifications.jar \
+            --config notifications/config.json

@@ -1,14 +1,16 @@
-# Используем последний Playwright с поддержкой Edge
 FROM mcr.microsoft.com/playwright:v1.49.1-jammy
 
-# Устанавливаем рабочую директорию
+# Рабочая директория в контейнере
 WORKDIR /app
 
 # Копируем все файлы проекта
 COPY . .
 
 # Устанавливаем зависимости
-RUN npm install --legacy-peer-deps
+RUN npm ci
 
-# Запуск тестов с передачей браузера
-CMD ["npx", "playwright", "test", "--browser", "msedge"]
+# Убедитесь, что playwright установил нужный браузер
+RUN npx playwright install --with-deps chromium
+
+# Запуск тестов
+CMD ["npx", "playwright", "test"]

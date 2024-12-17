@@ -19,5 +19,6 @@ export default defineConfig({
     screenshot: 'on', // Делать скриншоты для каждого шага
     trace: 'on', // Включить сбор трасс
     video: 'retain-on-failure', // Записывать видео только при падении тестов
+    browserName: 'chromium', // Установить браузер Chromium
   },
 });
