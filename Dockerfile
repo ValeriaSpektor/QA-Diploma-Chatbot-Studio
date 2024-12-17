@@ -1,16 +1,14 @@
+# Используем официальный Playwright образ с Node.js
 FROM mcr.microsoft.com/playwright:v1.49.1-jammy
 
-# Рабочая директория в контейнере
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем все файлы проекта
+# Копируем файлы проекта
 COPY . .
 
 # Устанавливаем зависимости
 RUN npm ci
 
-# Убедитесь, что playwright установил нужный браузер
-RUN npx playwright install --with-deps chromium
-
-# Запуск тестов
+# Запускаем тесты Playwright
 CMD ["npx", "playwright", "test"]

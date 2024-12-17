@@ -1,0 +1,18 @@
+{
+  "base": {
+    "project": "QA-Diploma-Chatbot-Studio",
+    "environment": "production",
+    "comment": "Allure Report generated successfully!",
+    "reportLink": "https://valeriaspektor.github.io/QA-Diploma-Chatbot-Studio/",
+    "language": "en",
+    "allureFolder": "allure-report",
+    "enableChart": true,
+    "enableSuitesPublishing": true
+  },
+  "telegram": {
+    "token": "7345026658:AAEAyW0wBzW5r55-WErsCN3kx_mC2OSvL5o",
+    "chat": "985944407",
+    "replyTo": "",
+    "templatePath": "/templates/telegram.ftl"
+  }
+}
