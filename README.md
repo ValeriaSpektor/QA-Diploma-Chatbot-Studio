@@ -73,7 +73,8 @@ The Allure report provides:
 - Detailed logs and historical trends.
 
 #### *Sample Report View:*
-![Allure Report](https://allure.autotests.cloud/launch/43098/?treeId=0)
+![image](https://github.com/user-attachments/assets/e6adaeb4-15ba-4da3-a1ee-e260e2c9062d)
+
 
 ---
 
@@ -83,7 +84,8 @@ The Allure report provides:
 - Notifications with summarized test results are sent to a *Telegram bot*.
 
 #### *Sample Notification:*
-![Telegram Notification](https://github.com/user-attachments/assets/3c4358fd-b37b-4932-99b1-c47469f64375)
+![WhatsApp Image 2024-12-17 at 22 12 51](https://github.com/user-attachments/assets/e929531a-29fd-4625-a3c7-5aaa8ad5b274)
+
 
 ---
 
@@ -101,7 +103,8 @@ The Allure report provides:
 ![Allure Report](https://allure.autotests.cloud/launch/43098/?treeId=0)
 
 #### *Telegram Notification*
-![Telegram Report](https://github.com/user-attachments/assets/3c4358fd-b37b-4932-99b1-c47469f64375)
+![WhatsApp Image 2024-12-17 at 22 12 51](https://github.com/user-attachments/assets/3bff7542-e6c0-4dfc-a660-75f908aab091)
+
 
 ---
 
