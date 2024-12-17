@@ -1,4 +1,4 @@
-# Используем базовый образ Playwright
+# Используем базовый образ в Playwright
 FROM mcr.microsoft.com/playwright:v1.49.1-jammy
 
 # Устанавливаем рабочую директорию

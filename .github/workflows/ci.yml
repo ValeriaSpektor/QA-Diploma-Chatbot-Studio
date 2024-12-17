@@ -1,7 +1,8 @@
 name: Playwright Tests in Docker
 
+# Ручной запуск автотестов
 on:
-  workflow_dispatch: # Ручной запуск автотестов
+  workflow_dispatch: 
 
 jobs:
   test:
