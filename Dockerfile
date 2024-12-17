@@ -1,20 +1,15 @@
-# Используем базовый образ Playwright
-FROM mcr.microsoft.com/playwright:v1.49.1-jammy
+# Используем официальный образ Playwright с поддержкой браузеров
+FROM mcr.microsoft.com/playwright:v1.39.0-jammy
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем файлы проекта
-COPY . .
-
-# Даем права на выполнение Playwright
-RUN chmod -R 777 /app
-
-# Устанавливаем зависимости
+# Копируем package.json и устанавливаем зависимости
+COPY package.json package-lock.json ./
 RUN npm install
 
-# Устанавливаем Playwright браузеры
-RUN npx playwright install --with-deps
+# Копируем все тесты и код
+COPY . .
 
-# Запускаем тесты
+# Запускаем Playwright тесты
 CMD ["npx", "playwright", "test"]

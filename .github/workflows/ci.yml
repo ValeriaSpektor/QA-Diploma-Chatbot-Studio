@@ -1,7 +1,7 @@
-name: Playwright Tests in Docker
+name: Run Playwright Tests in Docker
 
 on:
-  workflow_dispatch: # Ручной запуск автотестов
+  workflow_dispatch:
 
 jobs:
   test:
@@ -12,11 +12,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Сборка Docker образа
       - name: Build Docker image
-        run: docker build -t playwright-tests .
+        run: |
+          docker build -t playwright-tests .
 
-      # Запуск тестов в Docker
       - name: Run tests in Docker
         run: |
           docker run --rm \
@@ -24,28 +23,24 @@ jobs:
             -v ${{ github.workspace }}/allure-report:/app/allure-report \
             playwright-tests
 
-      # Сохранение Allure результатов
       - name: Upload Allure results
-        uses: actions/upload-artifact@v4
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: allure-results
           path: allure-results
           retention-days: 20
 
-      # Генерация Allure отчета
       - name: Generate Allure Report
-        uses: simple-elf/allure-report-action@master
         if: always()
-        id: allure-report
+        uses: simple-elf/allure-report-action@master
         with:
           allure_results: allure-results
-          gh_pages: gh-pages
           allure_report: allure-report
+          gh_pages: gh-pages
           allure_history: allure-history
           keep_reports: 20
 
-      # Деплой отчета на GitHub Pages
       - name: Deploy Allure Report to GitHub Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v4
@@ -54,13 +49,8 @@ jobs:
           publish_branch: gh-pages
           publish_dir: allure-history
 
-      # Отправка уведомления в Telegram
       - name: Notify Telegram with Image
         if: always()
         run: |
           java -jar notifications/allure-notifications.jar \
-          --configFile notifications/config.json \
-          --telegramToken "${{ secrets.TELEGRAM_BOT_TOKEN }}" \
-          --telegramChatId "${{ secrets.TELEGRAM_CHAT_ID }}" \
-          --allureResults "allure-results" \
-          --reportLink "https://${{ github.repository_owner }}.github.io/${{ github.repository }}"
+            -config "notifications/config.json"
