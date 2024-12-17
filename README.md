@@ -84,7 +84,7 @@ The Allure report provides:
 - Notifications with summarized test results are sent to a *Telegram bot*.
 
 #### *Sample Notification:*
-![WhatsApp Image 2024-12-17 at 22 12 51](https://github.com/user-attachments/assets/e929531a-29fd-4625-a3c7-5aaa8ad5b274)
+![image](https://github.com/user-attachments/assets/2d4f04e8-0172-4bf4-881b-5b9827663433)
 
 
 ---
@@ -106,7 +106,8 @@ The Allure report provides:
 
 
 #### *Telegram Notification*
-![WhatsApp Image 2024-12-17 at 22 12 51](https://github.com/user-attachments/assets/3bff7542-e6c0-4dfc-a660-75f908aab091)
+![image](https://github.com/user-attachments/assets/3488569c-878c-4fe4-81cf-f4354b033fc3)
+
 
 
 ---
