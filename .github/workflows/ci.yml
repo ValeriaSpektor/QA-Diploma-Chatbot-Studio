@@ -1,12 +1,12 @@
 name: Run Playwright Tests in Docker
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Ручной запуск тестов
 
 jobs:
   test:
-    timeout-minutes: 60
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -19,13 +19,13 @@ jobs:
       - name: Run tests in Docker
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}/allure-results:/app/allure-results \
-            -v ${{ github.workspace }}/allure-report:/app/allure-report \
-            playwright-tests
+          -v ${{ github.workspace }}/allure-results:/app/allure-results \
+          -v ${{ github.workspace }}/allure-report:/app/allure-report \
+          playwright-tests
 
       - name: Upload Allure results
-        if: always()
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: allure-results
           path: allure-results
@@ -36,8 +36,8 @@ jobs:
         uses: simple-elf/allure-report-action@master
         with:
           allure_results: allure-results
-          allure_report: allure-report
           gh_pages: gh-pages
+          allure_report: allure-report
           allure_history: allure-history
           keep_reports: 20
 
@@ -53,4 +53,4 @@ jobs:
         if: always()
         run: |
           java -jar notifications/allure-notifications.jar \
-            -config "notifications/config.json"
+          -configFile="notifications/config.json"
