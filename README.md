@@ -100,7 +100,10 @@ The Allure report provides:
 
 ### 🖼 Screenshots
 #### *Allure Report Overview*
-![Allure Report](https://allure.autotests.cloud/launch/43098/?treeId=0)
+![image](https://github.com/user-attachments/assets/a55d71ba-f6a5-4135-aed1-3b859b4b5e51)
+![image](https://github.com/user-attachments/assets/9f3aed2b-5d56-4d5f-b6ba-8e159a5def41)
+![image](https://github.com/user-attachments/assets/97d36a7d-5dd5-44d8-a21c-84248ca81dab)
+
 
 #### *Telegram Notification*
 ![WhatsApp Image 2024-12-17 at 22 12 51](https://github.com/user-attachments/assets/3bff7542-e6c0-4dfc-a660-75f908aab091)
