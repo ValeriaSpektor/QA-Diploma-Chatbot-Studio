@@ -101,8 +101,6 @@ The Allure report provides:
 ### 🖼 Screenshots
 #### *Allure Report Overview*
 ![image](https://github.com/user-attachments/assets/a55d71ba-f6a5-4135-aed1-3b859b4b5e51)
-![image](https://github.com/user-attachments/assets/9f3aed2b-5d56-4d5f-b6ba-8e159a5def41)
-![image](https://github.com/user-attachments/assets/97d36a7d-5dd5-44d8-a21c-84248ca81dab)
 
 
 #### *Telegram Notification*
